@@ -1,0 +1,22 @@
+# 환경변수
+.env
+.env.*
+
+# 프론트엔드 빌드/캐시
+/frontend/node_modules
+/frontend/dist
+/frontend/dist-ssr
+
+# 백엔드 캐시
+/backend/__pycache__/
+/backend/.venv/
+/backend/env/
+/backend/.mypy_cache/
+
+# 로그
+*.log
+
+# 에디터 설정
+.vscode/
+.idea/
+.DS_Store
