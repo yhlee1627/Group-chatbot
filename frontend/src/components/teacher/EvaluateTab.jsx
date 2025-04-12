@@ -124,7 +124,9 @@ function EvaluateTab({ backend, headers, classId }) {
     <div>
       <SectionTitle>채팅방 평가</SectionTitle>
 
-      {topics.map((t) => (
+      {topics
+        .filter((t) => rooms.some((r) => r.topic_id === t.topic_id))  // ✅ 핵심 필터
+        .map((t) => (
         <div key={t.topic_id} style={styles.topicSection}>
           <h4 style={styles.topicTitle}>{t.title}</h4>
           <textarea
