@@ -43,14 +43,12 @@ function EvaluateTab({ backend, headers, classId }) {
   };
 
   const fetchEvaluation = async () => {
-    if (!selectedRoom) return;
-  
     const studentParam = targetStudent
       ? `&student_id=eq.${targetStudent}`
       : `&student_id=is.null`;
-  
+
     const url = `${supabaseUrl}/gpt_chat_evaluations?room_id=eq.${selectedRoom.room_id}${studentParam}&order=created_at.desc&limit=1`;
-    console.log("📡 Supabase 평가 조회 주소:", url);
+
     try {
       const res = await fetch(url, {
         headers: {
@@ -58,19 +56,36 @@ function EvaluateTab({ backend, headers, classId }) {
           Authorization: `Bearer ${supabaseKey}`,
         },
       });
-  
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("❌ 평가 결과 조회 실패:", res.status, text);
-        setEvaluation("");
-        return;
-      }
-  
       const data = await res.json();
       setEvaluation(data[0]?.summary || "");
     } catch (err) {
       console.error("❌ 평가 결과 조회 실패 (예외):", err);
       setEvaluation("");
+    }
+  };
+
+  // ✅ 루브릭 수정 함수 추가
+  const updateRubric = async (topicId) => {
+    const newPrompt = document.getElementById(`rubric-${topicId}`).value;
+
+    try {
+      const res = await fetch(`${backend}/topics?topic_id=eq.${topicId}`, {
+        method: "PATCH",
+        headers: { ...headers, Prefer: "return=representation" },
+        body: JSON.stringify({ rubric_prompt: newPrompt }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("❌ 루브릭 수정 실패:", text);
+        alert("❌ 루브릭 수정 실패: " + text);
+        return;
+      }
+
+      alert("✅ 루브릭이 성공적으로 수정되었습니다.");
+    } catch (err) {
+      console.error("❌ 루브릭 수정 예외:", err);
+      alert("❌ 루브릭 수정 중 오류가 발생했습니다.");
     }
   };
 
@@ -125,37 +140,37 @@ function EvaluateTab({ backend, headers, classId }) {
       <SectionTitle>채팅방 평가</SectionTitle>
 
       {topics
-        .filter((t) => rooms.some((r) => r.topic_id === t.topic_id))  // ✅ 핵심 필터
+        .filter((t) => rooms.some((r) => r.topic_id === t.topic_id))
         .map((t) => (
-        <div key={t.topic_id} style={styles.topicSection}>
-          <h4 style={styles.topicTitle}>{t.title}</h4>
-          <textarea
-            id={`rubric-${t.topic_id}`}
-            defaultValue={t.rubric_prompt}
-            style={styles.textarea}
-          />
-          <button onClick={() => updateRubric(t.topic_id)} style={styles.buttonBlue}>
-            루브릭 수정
-          </button>
+          <div key={t.topic_id} style={styles.topicSection}>
+            <h4 style={styles.topicTitle}>{t.title}</h4>
+            <textarea
+              id={`rubric-${t.topic_id}`}
+              defaultValue={t.rubric_prompt}
+              style={styles.textarea}
+            />
+            <button onClick={() => updateRubric(t.topic_id)} style={styles.buttonBlue}>
+              루브릭 수정
+            </button>
 
-          <div style={styles.roomList}>
-            {rooms
-              .filter((r) => r.topic_id === t.topic_id)
-              .map((r) => (
-                <button
-                  key={r.room_id}
-                  onClick={() => setSelectedRoom(r)}
-                  style={{
-                    ...styles.roomButton,
-                    backgroundColor: selectedRoom?.room_id === r.room_id ? "#e0f7fa" : "#f1f1f1",
-                  }}
-                >
-                  {r.title}
-                </button>
-              ))}
+            <div style={styles.roomList}>
+              {rooms
+                .filter((r) => r.topic_id === t.topic_id)
+                .map((r) => (
+                  <button
+                    key={r.room_id}
+                    onClick={() => setSelectedRoom(r)}
+                    style={{
+                      ...styles.roomButton,
+                      backgroundColor: selectedRoom?.room_id === r.room_id ? "#e0f7fa" : "#f1f1f1",
+                    }}
+                  >
+                    {r.title}
+                  </button>
+                ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
 
       {selectedRoom && (
         <div style={styles.chatBox}>
@@ -189,7 +204,7 @@ function EvaluateTab({ backend, headers, classId }) {
               ))}
           </div>
 
-          {/* 평가 대상 + 버튼 */}
+          {/* 평가 대상 + 평가 버튼 */}
           <div style={styles.filterRow}>
             <label>평가 대상:</label>
             <select
