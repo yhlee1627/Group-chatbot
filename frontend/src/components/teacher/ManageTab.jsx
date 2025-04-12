@@ -5,14 +5,19 @@ function ManageTab({ backend, headers, classId }) {
   const [topics, setTopics] = useState([]);
   const [rooms, setRooms] = useState([]);
 
+  // 방 목록 가져오기 함수 분리
+  const fetchRooms = async () => {
+    const res = await fetch(`${backend}/rooms`, { headers });
+    const data = await res.json();
+    setRooms(data);
+  };
+
   useEffect(() => {
     fetch(`${backend}/topics?class_id=eq.${classId}`, { headers })
       .then((res) => res.json())
       .then(setTopics);
 
-    fetch(`${backend}/rooms`, { headers })
-      .then((res) => res.json())
-      .then(setRooms);
+    fetchRooms();
   }, [classId]);
 
   const updatePrompt = async (topicId) => {
@@ -29,31 +34,45 @@ function ManageTab({ backend, headers, classId }) {
     await fetch(`${backend}/messages?room_id=eq.${roomId}`, { method: "DELETE", headers });
     await fetch(`${backend}/rooms?room_id=eq.${roomId}`, { method: "DELETE", headers });
     alert("✅ 채팅방 삭제 완료!");
-    location.reload();
+    await fetchRooms();  // ✅ 방 목록 다시 불러오기
+  };
+
+  // 주어진 topic에 연결된 채팅방이 있는지 확인
+  const hasRooms = (topicId) => {
+    return rooms.some((room) => room.topic_id === topicId);
   };
 
   return (
     <div>
       <SectionTitle>채팅방 관리</SectionTitle>
-      {topics.map((t) => (
-        <div key={t.topic_id} style={styles.topicBox}>
-          <h4>{t.title}</h4>
-          <textarea
-            id={`prompt-${t.topic_id}`}
-            defaultValue={t.system_prompt}
-            style={styles.textarea}
-          />
-          <button onClick={() => updatePrompt(t.topic_id)} style={styles.button}>시스템 프롬프트 수정</button>
+      {topics
+        .filter((t) => hasRooms(t.topic_id))  // ✅ 연결된 방이 있을 때만 렌더링
+        .map((t) => (
+          <div key={t.topic_id} style={styles.topicBox}>
+            <h4>{t.title}</h4>
+            <textarea
+              id={`prompt-${t.topic_id}`}
+              defaultValue={t.system_prompt}
+              style={styles.textarea}
+            />
+            <button onClick={() => updatePrompt(t.topic_id)} style={styles.button}>
+              시스템 프롬프트 수정
+            </button>
 
-          <ul>
-            {rooms.filter((r) => r.topic_id === t.topic_id).map((r) => (
-              <li key={r.room_id}>
-                {r.title} <button onClick={() => deleteRoom(r.room_id)} style={styles.deleteBtn}>삭제</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+            <ul>
+              {rooms
+                .filter((r) => r.topic_id === t.topic_id)
+                .map((r) => (
+                  <li key={r.room_id}>
+                    {r.title}
+                    <button onClick={() => deleteRoom(r.room_id)} style={styles.deleteBtn}>
+                      삭제
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ))}
     </div>
   );
 }
@@ -86,6 +105,7 @@ const styles = {
     border: "none",
     background: "none",
     cursor: "pointer",
+    marginLeft: "0.5rem",
   },
 };
 
