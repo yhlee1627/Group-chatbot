@@ -7,6 +7,13 @@ function EvaluateTab({ backend, headers, classId }) {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [messages, setMessages] = useState([]);
   const [filterSender, setFilterSender] = useState("");
+  const [targetStudent, setTargetStudent] = useState("");
+  const [evaluation, setEvaluation] = useState("");
+  const [isEvaluating, setIsEvaluating] = useState(false);
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const evaluateApi = import.meta.env.VITE_EVALUATE_API;
 
   useEffect(() => {
     fetch(`${backend}/topics?class_id=eq.${classId}`, { headers })
@@ -18,8 +25,15 @@ function EvaluateTab({ backend, headers, classId }) {
       .then(setRooms);
   }, [classId]);
 
+  useEffect(() => {
+    if (selectedRoom) fetchMessages(selectedRoom);
+  }, [selectedRoom]);
+
+  useEffect(() => {
+    if (selectedRoom) fetchEvaluation();
+  }, [selectedRoom, targetStudent]);
+
   const fetchMessages = async (room) => {
-    setSelectedRoom(room);
     const res = await fetch(
       `${backend}/messages?room_id=eq.${room.room_id}&order=timestamp.asc`,
       { headers }
@@ -28,14 +42,80 @@ function EvaluateTab({ backend, headers, classId }) {
     setMessages(data);
   };
 
-  const updateRubric = async (topicId) => {
-    const val = document.getElementById(`rubric-${topicId}`).value;
-    await fetch(`${backend}/topics?topic_id=eq.${topicId}`, {
-      method: "PATCH",
-      headers: { ...headers, Prefer: "return=representation" },
-      body: JSON.stringify({ rubric_prompt: val }),
-    });
-    alert("✅ 루브릭 프롬프트 수정 완료!");
+  const fetchEvaluation = async () => {
+    if (!selectedRoom) return;
+  
+    const studentParam = targetStudent
+      ? `&student_id=eq.${targetStudent}`
+      : `&student_id=is.null`;
+  
+    const url = `${supabaseUrl}/gpt_chat_evaluations?room_id=eq.${selectedRoom.room_id}${studentParam}&order=created_at.desc&limit=1`;
+    console.log("📡 Supabase 평가 조회 주소:", url);
+    try {
+      const res = await fetch(url, {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      });
+  
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("❌ 평가 결과 조회 실패:", res.status, text);
+        setEvaluation("");
+        return;
+      }
+  
+      const data = await res.json();
+      setEvaluation(data[0]?.summary || "");
+    } catch (err) {
+      console.error("❌ 평가 결과 조회 실패 (예외):", err);
+      setEvaluation("");
+    }
+  };
+
+  const evaluateWithGPT = async () => {
+    if (!selectedRoom) return;
+
+    const topic = topics.find((t) => t.topic_id === selectedRoom.topic_id);
+    if (!topic?.rubric_prompt) {
+      alert("⚠️ 해당 토픽에 루브릭 프롬프트가 없습니다.");
+      return;
+    }
+
+    setIsEvaluating(true);
+    setEvaluation("GPT가 평가 중입니다...");
+
+    try {
+      const filteredMessages = !targetStudent
+        ? messages
+        : messages.filter((m) => m.sender_id === targetStudent);
+
+      const res = await fetch(`${evaluateApi}/evaluate-chat`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          topic_id: topic.topic_id,
+          rubric_prompt: topic.rubric_prompt,
+          room_id: selectedRoom.room_id,
+          class_id: topic.class_id,
+          target_student: targetStudent || null,
+          messages: filteredMessages.map((m) => ({
+            sender_id: m.sender_id,
+            message: m.message,
+          })),
+        }),
+      });
+
+      const raw = await res.text();
+      const result = JSON.parse(raw);
+      setEvaluation(result.feedback || "📭 GPT 평가 결과 없음");
+    } catch (error) {
+      console.error("GPT 평가 오류:", error);
+      setEvaluation("❌ GPT 평가 요청 중 오류가 발생했습니다.");
+    }
+
+    setIsEvaluating(false);
   };
 
   const senders = [...new Set(messages.map((m) => m.sender_id))];
@@ -47,7 +127,6 @@ function EvaluateTab({ backend, headers, classId }) {
       {topics.map((t) => (
         <div key={t.topic_id} style={styles.topicSection}>
           <h4 style={styles.topicTitle}>{t.title}</h4>
-
           <textarea
             id={`rubric-${t.topic_id}`}
             defaultValue={t.rubric_prompt}
@@ -63,7 +142,7 @@ function EvaluateTab({ backend, headers, classId }) {
               .map((r) => (
                 <button
                   key={r.room_id}
-                  onClick={() => fetchMessages(r)}
+                  onClick={() => setSelectedRoom(r)}
                   style={{
                     ...styles.roomButton,
                     backgroundColor: selectedRoom?.room_id === r.room_id ? "#e0f7fa" : "#f1f1f1",
@@ -80,6 +159,7 @@ function EvaluateTab({ backend, headers, classId }) {
         <div style={styles.chatBox}>
           <h4 style={styles.chatTitle}>💬 {selectedRoom.title}</h4>
 
+          {/* 화자 필터 */}
           <div style={styles.filterRow}>
             <label>화자 필터:</label>
             <select
@@ -96,6 +176,7 @@ function EvaluateTab({ backend, headers, classId }) {
             </select>
           </div>
 
+          {/* 메시지 출력 */}
           <div style={styles.messageList}>
             {messages
               .filter((m) => !filterSender || m.sender_id === filterSender)
@@ -105,6 +186,47 @@ function EvaluateTab({ backend, headers, classId }) {
                 </div>
               ))}
           </div>
+
+          {/* 평가 대상 + 버튼 */}
+          <div style={styles.filterRow}>
+            <label>평가 대상:</label>
+            <select
+              value={targetStudent}
+              onChange={(e) => setTargetStudent(e.target.value)}
+              style={styles.select}
+            >
+              <option value="">전체 학생</option>
+              {senders.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={evaluateWithGPT}
+              disabled={isEvaluating}
+              style={styles.buttonBlue}
+            >
+              {isEvaluating
+                ? "GPT 평가 중..."
+                : `💡 GPT로 평가하기 (${targetStudent || "전체"})`}
+            </button>
+          </div>
+
+          {/* 평가 결과 */}
+          {evaluation ? (
+            <div style={styles.evaluationBox}>
+              <h5>📊 GPT 평가 결과</h5>
+              <pre style={{ whiteSpace: "pre-wrap" }}>{evaluation}</pre>
+            </div>
+          ) : (
+            !isEvaluating && (
+              <div style={{ marginTop: "1rem", fontStyle: "italic", color: "#999" }}>
+                📭 평가 결과가 없습니다.
+              </div>
+            )
+          )}
         </div>
       )}
     </div>
@@ -137,7 +259,7 @@ const styles = {
     padding: "0.4rem 0.8rem",
     borderRadius: "6px",
     cursor: "pointer",
-    marginBottom: "1rem",
+    marginTop: "0.25rem",
   },
   roomList: {
     display: "flex",
@@ -163,7 +285,7 @@ const styles = {
     fontWeight: "600",
   },
   filterRow: {
-    marginBottom: "0.75rem",
+    marginBottom: "1rem",
     display: "flex",
     gap: "0.5rem",
     alignItems: "center",
@@ -180,10 +302,20 @@ const styles = {
     border: "1px solid #ddd",
     maxHeight: "300px",
     overflowY: "auto",
+    marginBottom: "1rem",
   },
   messageItem: {
     marginBottom: "0.5rem",
     fontSize: "0.95rem",
+  },
+  evaluationBox: {
+    marginTop: "1rem",
+    padding: "1rem",
+    backgroundColor: "#f9f9f9",
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+    fontSize: "0.95rem",
+    lineHeight: "1.5",
   },
 };
 

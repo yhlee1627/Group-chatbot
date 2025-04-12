@@ -1,53 +1,93 @@
 import React from "react";
+import styles from "./chatStyles";
 import { getUserColor } from "./chatUtils";
 
-function MessageList({ messages, studentId }) {
+function MessageList({ messages, studentId, isAdmin = false }) {
   return messages.map((msg, i) => {
-    if (msg.role === "system") {
+    if (msg.type === "system") {
       return (
-        <div key={i} style={{ textAlign: "center", color: "#888", margin: "8px 0" }}>
+        <div key={i} style={styles.systemMessage}>
           {msg.message}
         </div>
       );
     }
 
+    const isGPT = msg.sender_id === "gpt";
     const isMyMessage = msg.sender_id === studentId;
-    const isGPT = msg.role === "assistant";
-    const sender = isGPT ? "🤖 GPT" : `🧑‍🎓 ${msg.sender_id}`;
-    const date = new Date(msg.timestamp);
-    const timeString = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const isWhisper = isGPT && msg.target && msg.target === studentId;
+    const isPublicGpt = isGPT && !msg.target;
+    const isGptToOthers = isGPT && msg.target && msg.target !== studentId;
+    const showAdminLog = isAdmin && isGptToOthers;
+
+    const senderName = msg.name ?? msg.sender_id;
+    const sender = isGPT ? "🤖 GPT" : `🧑‍🎓 ${senderName}`;
+
+    const time = msg.timestamp
+      ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "";
+
+    const containerStyle = {
+      ...styles.messageContainer,
+      justifyContent: isMyMessage ? "flex-end" : "flex-start",
+    };
+
+    const bubbleStyle = {
+      ...styles.bubbleBase,
+      ...(isMyMessage
+        ? styles.bubbleMyMessage
+        : isGPT
+        ? isWhisper
+          ? styles.bubbleGptWhisper
+          : styles.bubbleGptPublic
+        : styles.bubbleOther),
+    };
 
     return (
-      <div
-        key={i}
-        style={{
-          display: "flex",
-          justifyContent: isMyMessage ? "flex-end" : "flex-start",
-          marginBottom: "1rem",
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: isMyMessage ? "#DCF8C6" : isGPT ? "#F0F4FF" : "#F3F3F3",
-            padding: "12px 16px",
-            borderRadius: "16px",
-            maxWidth: "70%",
-          }}
-        >
-          <div style={{
-            fontSize: "13px",
-            color: getUserColor(msg.sender_id),
-            marginBottom: "4px",
-            textAlign: isMyMessage ? "right" : "left",
-          }}>
-            {sender}
+      <React.Fragment key={i}>
+        {showAdminLog && (
+          <div style={styles.systemMessage}>
+            GPT가 {msg.target} 학생에게 귓속말을 보냈습니다.
           </div>
-          <div>{msg.message}</div>
-          <div style={{ fontSize: "11px", color: "#999", textAlign: isMyMessage ? "right" : "left" }}>
-            {timeString}
+        )}
+        <div style={containerStyle}>
+          <div style={bubbleStyle}>
+            <div
+              style={{
+                ...styles.senderLabel,
+                color: getUserColor(msg.sender_id),
+                textAlign: isMyMessage ? "right" : "left",
+              }}
+            >
+              {sender}
+            </div>
+
+            {/* 🤫 GPT 귓속말 라벨 */}
+            {isWhisper && (
+              <div style={styles.whisperLabel}>🤫 GPT가 너에게만 하는 말이야</div>
+            )}
+
+            {/* 💬 GPT 질문 표시 */}
+            {msg.is_gpt_question && (
+              <div style={{ color: "#007AFF", fontWeight: "bold", marginBottom: "4px" }}>
+                [GPT에게 질문]
+              </div>
+            )}
+
+            <div>{msg.message}</div>
+
+            {time && (
+              <div
+                style={{
+                  ...styles.timestamp,
+                  textAlign: isMyMessage ? "right" : "left",
+                }}
+              >
+                {time}
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      </React.Fragment>
     );
   });
 }

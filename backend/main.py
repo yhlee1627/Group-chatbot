@@ -8,14 +8,22 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from socketio import AsyncServer, ASGIApp
-
 from socket_events import register_socket_events
+from openai import AsyncOpenAI
+from pydantic import BaseModel
+from typing import List, Optional
+from supabase import create_client
+import traceback
+from gpt_handler import evaluate_conversation
 
-# ── 환경 변수 로딩
+# ─────────── 환경 변수 로딩
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_API_KEY")
+SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+client = AsyncOpenAI(api_key=openai.api_key)
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -23,11 +31,11 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-# ── Socket.IO 구성
+# ─────────── Socket.IO 구성
 sio = AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 register_socket_events(sio)
 
-# ── FastAPI 구성
+# ─────────── FastAPI 앱 구성
 fastapi_app = FastAPI()
 
 fastapi_app.add_middleware(
@@ -38,7 +46,7 @@ fastapi_app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─────────── 로그인 라우터 ───────────
+# ─────────── 로그인 라우터
 @fastapi_app.get("/students/{student_id}")
 async def get_student(student_id: str):
     url = f"{SUPABASE_URL}/rest/v1/students?student_id=eq.{student_id}&select=student_id,password,class_id,name"
@@ -63,7 +71,7 @@ async def get_admin(admin_id: str):
         return JSONResponse(content=res.json()[0], status_code=200)
     return JSONResponse(content={"error": "존재하지 않는 관리자 ID"}, status_code=404)
 
-# ─────────── 데이터 조회 라우터 ───────────
+# ─────────── 데이터 조회 라우터
 @fastapi_app.get("/classes")
 async def get_classes():
     url = f"{SUPABASE_URL}/rest/v1/classes?select=class_id,name"
@@ -88,7 +96,7 @@ async def get_messages(room_id: str):
     res = requests.get(url, headers=HEADERS)
     return res.json()
 
-# ─────────── 주제 + 방 생성 ───────────
+# ─────────── 주제 + 방 생성 라우터
 @fastapi_app.post("/topics")
 async def create_topic_with_rooms(request: Request):
     body = await request.json()
@@ -129,44 +137,54 @@ async def create_topic_with_rooms(request: Request):
     except Exception as e:
         return {"error": "서버 내부 오류", "detail": str(e)}
 
-# ─────────── GPT 평가 ───────────
-@fastapi_app.post("/evaluate")
-async def evaluate(request: Request):
-    data = await request.json()
-    room_id = data["room_id"]
-    student_id = data["student_id"]
+# ─────────── GPT 평가 라우터
+class ChatMessage(BaseModel):
+    sender_id: str
+    message: str
 
-    msg_url = f"{SUPABASE_URL}/rest/v1/messages?room_id=eq.{room_id}&select=message,role,sender_id&order=timestamp.asc"
-    msg_res = requests.get(msg_url, headers=HEADERS)
-    messages = msg_res.json()
-    student_msgs = [m for m in messages if m["role"] == "user" and m["sender_id"] == student_id]
+class EvaluationRequest(BaseModel):
+    topic_id: str
+    rubric_prompt: str
+    target_student: Optional[str] = None
+    room_id: Optional[str] = None
+    class_id: Optional[str] = None
+    conversation_id: Optional[str] = None
+    messages: List[ChatMessage]
 
-    room_url = f"{SUPABASE_URL}/rest/v1/rooms?room_id=eq.{room_id}&select=topic_id"
-    topic_id = requests.get(room_url, headers=HEADERS).json()[0]["topic_id"]
+@fastapi_app.post("/evaluate-chat")
+async def evaluate_chat(request: Request):
+    try:
+        body = await request.json()
+        data = EvaluationRequest(**body)
 
-    topic_url = f"{SUPABASE_URL}/rest/v1/topics?topic_id=eq.{topic_id}&select=system_prompt,rubric_prompt"
-    topic = requests.get(topic_url, headers=HEADERS).json()[0]
+        print("📩 GPT 평가 요청:", data.topic_id, "/", data.target_student or "전체")
 
-    prompt = f"""다음은 학생이 참여한 대화 내용입니다.
+        # ✅ GPT 평가 핸들러 호출
+        feedback = await evaluate_conversation(
+            rubric_prompt=data.rubric_prompt,
+            messages=[m.dict() for m in data.messages]
+        )
 
-📋 평가 기준:
-{topic['rubric_prompt']}
+        print("✅ GPT 평가 결과 생성 완료")
+        print("📄 평가 요약:\n", feedback[:200], "...")
 
-📩 학생 발언:
-{chr(10).join([m['message'] for m in student_msgs])}
-"""
+        # ✅ 평가 결과 Supabase 저장
+        supabase = create_client(SUPABASE_URL, SERVICE_KEY)
+        insert_data = {
+            "topic_id": data.topic_id,
+            "room_id": data.room_id,
+            "class_id": data.class_id,
+            "student_id": data.target_student,
+            "conversation_id": data.conversation_id,
+            "summary": feedback,
+            "evaluation_type": "individual" if data.target_student else "group"
+        }
+        supabase.table("gpt_chat_evaluations").insert(insert_data).execute()
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": topic['system_prompt']},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.5
-    )
-
-    result = response.choices[0].message.content.strip()
-    return {"summary": result}
-
-# ─────────── FastAPI + WebSocket 통합 ───────────
+        return {"feedback": feedback}
+    except Exception as e:
+        print("❌ GPT 평가 오류:", e)
+        traceback.print_exc()
+        return {"feedback": "GPT 평가 생성 중 오류가 발생했습니다."}
+    
 app = ASGIApp(sio, other_asgi_app=fastapi_app, socketio_path="ws/socket.io")

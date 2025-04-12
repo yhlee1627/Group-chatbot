@@ -8,7 +8,7 @@ function ChatRoom() {
   const [messages, setMessages] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [input, setInput] = useState("");
-  const [roomTitle, setRoomTitle] = useState("채팅방"); // ✅ room title 상태
+  const [roomTitle, setRoomTitle] = useState("채팅방");
 
   const navigate = useNavigate();
   const studentId = localStorage.getItem("studentId");
@@ -40,23 +40,36 @@ function ChatRoom() {
     });
 
     socket.on("receive_message", (msg) => {
+      // ✅ 귓속말인데 내 것이 아니면 무시
       if (msg.target && msg.target !== studentId) return;
+    
       setMessages((prev) => [...prev, msg]);
     });
 
     socket.on("current_users", ({ participants }) => {
-      setParticipants(participants);
+      setParticipants(participants);  // [{ student_id, name }]
     });
 
     socket.on("user_joined", ({ sender_id }) => {
-      setParticipants((prev) => (prev.includes(sender_id) ? prev : [...prev, sender_id]));
+      setParticipants((prev) =>
+        prev.includes(sender_id) ? prev : [...prev, sender_id]
+      );
+      if (sender_id !== studentId) {
+        setMessages((prev) => [
+          ...prev,
+          { type: "system", message: `🟢 ${sender_id}님이 입장했습니다.` },
+        ]);
+      }
     });
 
     socket.on("user_left", ({ sender_id }) => {
       setParticipants((prev) => prev.filter((id) => id !== sender_id));
+      setMessages((prev) => [
+        ...prev,
+        { type: "system", message: `🔴 ${sender_id}님이 퇴장했습니다.` },
+      ]);
     });
 
-    // ✅ 방 제목 불러오기
     fetch(`${import.meta.env.VITE_BACKEND_URL}/rooms?room_id=eq.${roomId}`, {
       headers: {
         apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
@@ -78,11 +91,12 @@ function ChatRoom() {
     };
   }, []);
 
-  const sendMessage = (text) => {
+  const sendMessage = (text, isGPT) => {
     socket.emit("send_message", {
       room_id: roomId,
       sender_id: studentId,
-      message: text
+      message: text,
+      ...(isGPT ? { target: "gpt" } : {})
     });
   };
 
@@ -102,17 +116,21 @@ function ChatRoom() {
         <div ref={messagesEndRef} />
       </div>
 
-      <InputBox input={input} setInput={setInput} onSend={sendMessage} />
+      <InputBox
+        input={input}
+        setInput={setInput}
+        onSend={sendMessage}
+      />
 
       <div style={styles.participants}>
         👥 참여자:{" "}
-        {participants.map((id, i) => (
+        {participants.map((user, i) => (
           <span key={i} style={{
             marginRight: "0.5rem",
-            fontWeight: id === studentId ? "bold" : "normal",
-            color: id === studentId ? "#007AFF" : "#555"
+            fontWeight: user.student_id === studentId ? "bold" : "normal",
+            color: user.student_id === studentId ? "#007AFF" : "#555"
           }}>
-            {id === "gpt" ? "🤖 GPT" : id}
+            {user.name ?? user.student_id}
           </span>
         ))}
       </div>

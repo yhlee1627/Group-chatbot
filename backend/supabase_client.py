@@ -54,3 +54,34 @@ async def get_system_prompt(room_id):
     topic_url = f"{SUPABASE_URL}/rest/v1/topics?topic_id=eq.{topic_id}&select=system_prompt"
     topic_res = requests.get(topic_url, headers=HEADERS)
     return topic_res.json()[0].get("system_prompt") if topic_res.status_code == 200 else None
+
+
+def get_student_name(student_id):
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/students?student_id=eq.{student_id}&select=name"
+        res = requests.get(url, headers=HEADERS)
+        if res.status_code == 200 and res.json():
+            return res.json()[0].get("name")
+    except Exception as e:
+        print("❌ 이름 조회 실패:", e)
+    return None
+
+def save_evaluation_result(topic_id, target_student, feedback):
+    from supabase import create_client
+    import os
+
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    supabase = create_client(url, key)
+
+    data = {
+        "topic_id": topic_id,
+        "target_student": target_student,
+        "feedback": feedback,
+    }
+
+    try:
+        res = supabase.table("evaluations").insert(data).execute()
+        print("✅ 평가 결과 저장 완료")
+    except Exception as e:
+        print("❌ 평가 결과 저장 실패:", e)

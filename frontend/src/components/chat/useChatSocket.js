@@ -13,10 +13,16 @@ export function useChatSocket({ studentId, roomId, setMessages, setParticipants,
     socket.on("receive_message", (data) => setMessages((prev) => [...prev, data]));
     socket.on("current_users", ({ participants }) => setParticipants(participants));
     socket.on("user_joined", ({ sender_id }) => {
+      console.log("✅ user_joined 이벤트 감지:", sender_id); // 추가
       setParticipants((prev) => prev.includes(sender_id) ? prev : [...prev, sender_id]);
-      if (sender_id !== studentId) addSystemMessage(`🟢 ${sender_id}님이 입장했습니다.`);
+      if (sender_id !== studentId) {
+        console.log("✅ 시스템 메시지 추가 직전"); // 추가
+        addSystemMessage(`🟢 ${sender_id}님이 입장했습니다.`);
+      }
     });
+    
     socket.on("user_left", ({ sender_id }) => {
+      console.log("✅ user_left 이벤트 감지:", sender_id); // 추가
       setParticipants((prev) => prev.filter((id) => id !== sender_id));
       addSystemMessage(`🔴 ${sender_id}님이 퇴장했습니다.`);
     });
