@@ -117,7 +117,7 @@ function ChatRoom() {
           marginBottom: "1rem",
         }}
       >
-        <h2 style={{ margin: 0 }}>💬 채팅방</h2>
+        <h2 style={{ margin: 0 }}>채팅방</h2>
         <button
           onClick={leaveRoom}
           style={{
@@ -148,7 +148,7 @@ function ChatRoom() {
         {messages.map((msg, i) => {
           const isMyMessage = msg.sender_id === studentId;
           const isGPT = msg.role === "assistant";
-          const sender = isGPT ? "🤖 GPT" : `🧑‍🎓 ${msg.sender_id || "이름없음"}`;
+          const sender = isGPT ? "GPT" : `${msg.sender_id || "이름없음"}`;
           const date = new Date(msg.timestamp);
           const timeString = date.toLocaleTimeString([], {
             hour: "2-digit",
@@ -259,7 +259,7 @@ function ChatRoom() {
       </div>
 
       <div style={{ fontSize: "14px", color: "#555" }}>
-        👥 참여자:{" "}
+        참여자:{" "}
         {participants.map((id, idx) => (
           <span
             key={idx}
@@ -269,7 +269,7 @@ function ChatRoom() {
               fontWeight: id === studentId ? "bold" : "normal",
             }}
           >
-            {id === "gpt" ? "🤖 GPT" : id}
+            {id === "gpt" ? "GPT" : id}
           </span>
         ))}
       </div>

@@ -212,20 +212,20 @@ function EvaluateTab({ backend, headers, classId }) {
             >
               {isEvaluating
                 ? "GPT 평가 중..."
-                : `💡 GPT로 평가하기 (${targetStudent || "전체"})`}
+                : `GPT로 평가하기 (${targetStudent || "전체"})`}
             </button>
           </div>
 
           {/* 평가 결과 */}
           {evaluation ? (
             <div style={styles.evaluationBox}>
-              <h5>📊 GPT 평가 결과</h5>
+              <h5>GPT 평가 결과</h5>
               <pre style={{ whiteSpace: "pre-wrap" }}>{evaluation}</pre>
             </div>
           ) : (
             !isEvaluating && (
               <div style={{ marginTop: "1rem", fontStyle: "italic", color: "#999" }}>
-                📭 평가 결과가 없습니다.
+                평가 결과가 없습니다.
               </div>
             )
           )}

@@ -28,7 +28,7 @@ function InputBox({ input, setInput, onSend }) {
           onChange={(e) => setIsGPT(e.target.checked)}
           style={styles.checkbox}
         />
-        🤖 GPT에게 질문
+        GPT에게 질문
       </label>
 
       <div style={styles.inputRow}>

@@ -20,7 +20,7 @@ function MessageList({ messages, studentId, isAdmin = false }) {
     const showAdminLog = isAdmin && isGptToOthers;
 
     const senderName = msg.name ?? msg.sender_id;
-    const sender = isGPT ? "🤖 GPT" : `🧑‍🎓 ${senderName}`;
+    const sender = isGPT ? "GPT" : `${senderName}`;
 
     const time = msg.timestamp
       ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -63,7 +63,7 @@ function MessageList({ messages, studentId, isAdmin = false }) {
 
             {/* 🤫 GPT 귓속말 라벨 */}
             {isWhisper && (
-              <div style={styles.whisperLabel}>🤫 GPT가 너에게만 하는 말이야</div>
+              <div style={styles.whisperLabel}>GPT가 너에게만 하는 말이야</div>
             )}
 
             {/* 💬 GPT 질문 표시 */}

@@ -123,7 +123,7 @@ function ChatRoom() {
       />
 
       <div style={styles.participants}>
-        👥 참여자:{" "}
+        참여자:{" "}
         {participants.map((user, i) => (
           <span key={i} style={{
             marginRight: "0.5rem",
