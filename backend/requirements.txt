@@ -4,3 +4,4 @@ python-socketio[asyncio_client] >= 5.7.2
 requests
 openai >= 1.0.0
 python-dotenv
+supabase
