@@ -20,7 +20,7 @@ function LoginSelection() {
           style={styles.logoContainer}
         >
           <div style={styles.logo}>💬</div>
-          <h1 style={styles.title}>학생 채팅</h1>
+          <h1 style={styles.title}>AI 그룹 채팅</h1>
         </motion.div>
 
         <p style={styles.subtitle}>
