@@ -56,72 +56,161 @@ function TeacherLogin() {
   };
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}
-      style={formStyle}
-    >
-      <h2 style={headerStyle}>교사 로그인</h2>
+    <div style={styles.container}>
+      <div style={styles.loginCard}>
+        <div style={styles.header}>
+          <div style={styles.logo}>📖</div>
+          <h1 style={styles.title}>교사 로그인</h1>
+        </div>
 
-      <label style={labelStyle}>반 선택</label>
-      <select value={selectedClassId} onChange={(e) => setSelectedClassId(e.target.value)} style={inputStyle}>
-        {classes.map((cls) => (
-          <option key={cls.class_id} value={cls.class_id}>{cls.name}</option>
-        ))}
-      </select>
+        <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} style={styles.form}>
+          <div style={styles.inputGroup}>
+            <select 
+              value={selectedClassId} 
+              onChange={(e) => setSelectedClassId(e.target.value)} 
+              style={styles.input}
+            >
+              <option value="" disabled>반을 선택하세요</option>
+              {classes.map((cls) => (
+                <option key={cls.class_id} value={cls.class_id}>{cls.name}</option>
+              ))}
+            </select>
+          </div>
 
-      <label style={labelStyle}>교사 ID</label>
-      <input type="text" value={teacherId} onChange={(e) => setTeacherId(e.target.value)} style={inputStyle} />
+          <div style={styles.inputGroup}>
+            <input 
+              type="text" 
+              value={teacherId} 
+              onChange={(e) => setTeacherId(e.target.value)} 
+              style={styles.input} 
+              placeholder="교사 ID"
+            />
+          </div>
 
-      <label style={labelStyle}>비밀번호</label>
-      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
+          <div style={styles.inputGroup}>
+            <input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              style={styles.input} 
+              placeholder="비밀번호"
+            />
+          </div>
 
-      <button type="submit" style={loginButtonStyle}>로그인</button>
-      <button type="button" onClick={() => navigate("/")} style={mainButtonStyle}>메인 화면으로 돌아가기</button>
-    </form>
+          <button type="submit" style={styles.loginButton}>
+            로그인
+          </button>
+        </form>
+
+        <div style={styles.divider}>
+          <span style={styles.dividerLine}></span>
+          <span style={styles.dividerText}>또는</span>
+          <span style={styles.dividerLine}></span>
+        </div>
+
+        <button 
+          type="button" 
+          onClick={() => navigate("/")} 
+          style={styles.backButton}
+        >
+          메인 화면으로 돌아가기
+        </button>
+      </div>
+    </div>
   );
 }
 
-const formStyle = {
-  maxWidth: "400px",
-  margin: "5rem auto",
-  padding: "2rem",
-  border: "1px solid #ddd",
-  borderRadius: "8px",
-  backgroundColor: "#fff",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-};
-
-const headerStyle = {
-  textAlign: "center",
-  marginBottom: "2rem",
-  fontSize: "1.5rem",
-};
-
-const labelStyle = { fontWeight: 500 };
-const inputStyle = {
-  width: "100%",
-  marginBottom: "1.2rem",
-  padding: "0.5rem",
-  borderRadius: "6px",
-  border: "1px solid #ccc",
-};
-
-const loginButtonStyle = {
-  width: "100%",
-  padding: "0.75rem",
-  backgroundColor: "#1976d2",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  fontSize: "1rem",
-  cursor: "pointer",
-  marginBottom: "1rem",
-};
-
-const mainButtonStyle = {
-  ...loginButtonStyle,
-  backgroundColor: "#eee",
-  color: "#333",
-  border: "1px solid #ccc",
+const styles = {
+  container: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "100vh",
+    backgroundColor: "#FAFAFA",
+    fontFamily: "'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  },
+  loginCard: {
+    width: "350px",
+    backgroundColor: "#FFFFFF",
+    border: "1px solid #DBDBDB",
+    borderRadius: "1px",
+    padding: "40px",
+    boxSizing: "border-box",
+  },
+  header: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    marginBottom: "24px",
+  },
+  logo: {
+    fontSize: "42px",
+    marginBottom: "12px",
+  },
+  title: {
+    fontSize: "24px",
+    fontWeight: "600",
+    margin: "0",
+    color: "#262626",
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  inputGroup: {
+    width: "100%",
+  },
+  input: {
+    width: "100%",
+    padding: "12px 8px",
+    backgroundColor: "#FAFAFA",
+    border: "1px solid #DBDBDB",
+    borderRadius: "3px",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    outline: "none",
+    color: "#262626",
+  },
+  loginButton: {
+    width: "100%",
+    padding: "8px 0",
+    backgroundColor: "#0095F6",
+    color: "#FFFFFF",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    marginTop: "8px",
+  },
+  divider: {
+    display: "flex",
+    alignItems: "center",
+    margin: "24px 0",
+  },
+  dividerLine: {
+    flex: 1,
+    height: "1px",
+    backgroundColor: "#DBDBDB",
+  },
+  dividerText: {
+    color: "#8E8E8E",
+    fontSize: "13px",
+    fontWeight: "600",
+    margin: "0 16px",
+  },
+  backButton: {
+    width: "100%",
+    padding: "8px 0",
+    backgroundColor: "transparent",
+    color: "#0095F6",
+    border: "none",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    textAlign: "center",
+  },
 };
 
 export default TeacherLogin;

@@ -162,77 +162,130 @@ function StudentDashboard() {
   });
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "800px", margin: "auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-        <h2 style={{ fontSize: "1.75rem", fontWeight: 600 }}>참여 가능한 채팅방</h2>
-        <div>
-          <button onClick={openSidebar} style={buttonStyleBlue}>내 정보 수정</button>
-          <button onClick={handleLogout} style={buttonStyleRed}>로그아웃</button>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.title}>채팅방</h2>
+        <div style={styles.buttonGroup}>
+          <button onClick={openSidebar} style={styles.profileButton}>
+            <span style={styles.profileIcon}>👤</span>
+          </button>
         </div>
       </div>
 
-      {Object.keys(grouped).length === 0 ? (
-        <div style={{ textAlign: "center", padding: "2rem", color: "#777" }}>
-          참여 가능한 채팅방이 없습니다.
-        </div>
-      ) : (
-        Object.entries(grouped).map(([topicId, roomList]) => (
-          <div key={topicId} style={{ marginBottom: "2rem" }}>
-            <h3 style={{ fontSize: "1.25rem", fontWeight: 500, marginBottom: "0.75rem" }}>
-              주제: {topics[topicId]?.title || "제목 없음"}
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              {roomList.map((room) => (
-                <div key={room.room_id} style={roomCardStyle}>
-                  <span style={{ fontSize: "1rem", fontWeight: 500 }}>{room.title}</span>
-                  <button onClick={() => handleEnterRoom(room.room_id)} style={buttonStyleGreen}>
-                    참여하기
-                  </button>
-                </div>
-              ))}
-            </div>
+      <div style={styles.content}>
+        {Object.keys(grouped).length === 0 ? (
+          <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>💬</div>
+            <div style={styles.emptyText}>참여 가능한 채팅방이 없습니다.</div>
           </div>
-        ))
-      )}
+        ) : (
+          Object.entries(grouped).map(([topicId, roomList]) => (
+            <div key={topicId} style={styles.topicContainer}>
+              <h3 style={styles.topicTitle}>
+                {topics[topicId]?.title || "제목 없음"}
+              </h3>
+              <div style={styles.roomList}>
+                {roomList.map((room) => (
+                  <div key={room.room_id} style={styles.roomCard}
+                    onClick={() => handleEnterRoom(room.room_id)}>
+                    <div style={styles.roomInfo}>
+                      <div style={styles.roomAvatar}>👥</div>
+                      <div style={styles.roomDetails}>
+                        <span style={styles.roomTitle}>{room.title}</span>
+                        <span style={styles.roomSubtitle}>채팅방 참여하기</span>
+                      </div>
+                    </div>
+                    <button style={styles.joinButton}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5L15 12L8 19" stroke="#0095F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
-      {/* ✅ 모던 사이드바 */}
+      {/* 프로필 사이드바 */}
       {showSidebar && (
         <>
-          <div style={overlayStyle} onClick={() => setShowSidebar(false)} />
-          <div style={sidebarStyle}>
-            <h3 style={{ marginBottom: "1rem" }}>내 정보 수정</h3>
-
-            <div style={{ marginBottom: "1rem" }}>
-              <label>이름</label>
-              <input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                style={inputStyle}
-              />
-              <button onClick={handleNameSave} style={buttonStyleGreen}>이름 저장</button>
+          <div style={styles.overlay} onClick={() => setShowSidebar(false)} />
+          <div style={styles.sidebar}>
+            <div style={styles.sidebarHeader}>
+              <h3 style={styles.sidebarTitle}>내 프로필</h3>
+              <button onClick={() => setShowSidebar(false)} style={styles.closeButton}>
+                ✕
+              </button>
             </div>
 
-            <div>
-              <label>비밀번호</label>
-              <input
-                type="password"
-                placeholder="새 비밀번호"
-                value={editPassword1}
-                onChange={(e) => setEditPassword1(e.target.value)}
-                style={inputStyle}
-              />
-              <input
-                type="password"
-                placeholder="비밀번호 확인"
-                value={editPassword2}
-                onChange={(e) => setEditPassword2(e.target.value)}
-                style={inputStyle}
-              />
-              <button onClick={handlePasswordSave} style={buttonStyleGreen}>비밀번호 저장</button>
+            <div style={styles.profileSection}>
+              <div style={styles.profileAvatar}>👤</div>
+              <div style={styles.profileName}>{currentName}</div>
+              <div style={styles.profileId}>{studentId}</div>
             </div>
 
-            <button onClick={() => setShowSidebar(false)} style={{ ...buttonStyleRed, marginTop: "1.5rem" }}>
-              닫기
+            <div style={styles.tabContainer}>
+              <button 
+                onClick={() => setActiveTab("name")} 
+                style={{
+                  ...styles.tabButton,
+                  ...(activeTab === "name" ? styles.activeTab : {})
+                }}>
+                이름 변경
+              </button>
+              <button 
+                onClick={() => setActiveTab("password")} 
+                style={{
+                  ...styles.tabButton,
+                  ...(activeTab === "password" ? styles.activeTab : {})
+                }}>
+                비밀번호 변경
+              </button>
+            </div>
+
+            {activeTab === "name" && (
+              <div style={styles.formSection}>
+                <label style={styles.inputLabel}>이름</label>
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  style={styles.input}
+                  placeholder="변경할 이름을 입력하세요"
+                />
+                <button onClick={handleNameSave} style={styles.saveButton}>
+                  저장
+                </button>
+              </div>
+            )}
+
+            {activeTab === "password" && (
+              <div style={styles.formSection}>
+                <label style={styles.inputLabel}>새 비밀번호</label>
+                <input
+                  type="password"
+                  placeholder="새 비밀번호"
+                  value={editPassword1}
+                  onChange={(e) => setEditPassword1(e.target.value)}
+                  style={styles.input}
+                />
+                <label style={styles.inputLabel}>비밀번호 확인</label>
+                <input
+                  type="password"
+                  placeholder="비밀번호 확인"
+                  value={editPassword2}
+                  onChange={(e) => setEditPassword2(e.target.value)}
+                  style={styles.input}
+                />
+                <button onClick={handlePasswordSave} style={styles.saveButton}>
+                  저장
+                </button>
+              </div>
+            )}
+
+            <button onClick={handleLogout} style={styles.logoutButton}>
+              로그아웃
             </button>
           </div>
         </>
@@ -241,77 +294,274 @@ function StudentDashboard() {
   );
 }
 
-// 🔵 스타일 정의
-const buttonStyleBlue = {
-  marginRight: "0.75rem",
-  backgroundColor: "#1976d2",
-  color: "#fff",
-  border: "none",
-  padding: "0.5rem 1rem",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
-
-const buttonStyleRed = {
-  backgroundColor: "#f44336",
-  color: "#fff",
-  border: "none",
-  padding: "0.5rem 1rem",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
-
-const buttonStyleGreen = {
-  marginTop: "0.5rem",
-  backgroundColor: "#2e7d32",
-  color: "white",
-  border: "none",
-  padding: "0.4rem 0.9rem",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
-
-const roomCardStyle = {
-  padding: "1rem",
-  border: "1px solid #ddd",
-  borderRadius: "8px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  backgroundColor: "#fff",
-};
-
-const sidebarStyle = {
-  position: "fixed",
-  top: 0,
-  right: 0,
-  width: "300px",
-  height: "100%",
-  backgroundColor: "#ffffff",
-  boxShadow: "-2px 0 8px rgba(0,0,0,0.1)",
-  padding: "1.5rem",
-  zIndex: 2000,
-  display: "flex",
-  flexDirection: "column",
-};
-
-const overlayStyle = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100vw",
-  height: "100vh",
-  backgroundColor: "rgba(0,0,0,0.3)",
-  zIndex: 1999,
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "0.5rem",
-  marginTop: "0.25rem",
-  marginBottom: "0.5rem",
-  borderRadius: "4px",
-  border: "1px solid #ccc",
+// 인스타그램 스타일 정의
+const styles = {
+  container: {
+    maxWidth: "935px",
+    margin: "0 auto",
+    padding: "20px",
+    fontFamily: "'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    color: "#262626",
+    backgroundColor: "#FAFAFA",
+    minHeight: "100vh",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 0",
+    borderBottom: "1px solid #DBDBDB",
+    marginBottom: "24px",
+  },
+  title: {
+    fontSize: "20px",
+    fontWeight: "600",
+    margin: "0",
+  },
+  buttonGroup: {
+    display: "flex",
+    gap: "16px",
+    alignItems: "center",
+  },
+  profileButton: {
+    backgroundColor: "transparent",
+    border: "none",
+    cursor: "pointer",
+    padding: "8px",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileIcon: {
+    fontSize: "20px",
+  },
+  content: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "24px",
+  },
+  topicContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: "8px",
+    border: "1px solid #DBDBDB",
+    overflow: "hidden",
+  },
+  topicTitle: {
+    fontSize: "16px",
+    fontWeight: "600",
+    padding: "16px",
+    margin: "0",
+    borderBottom: "1px solid #EFEFEF",
+  },
+  roomList: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  roomCard: {
+    padding: "12px 16px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottom: "1px solid #EFEFEF",
+    cursor: "pointer",
+    transition: "background-color 0.2s",
+    backgroundColor: "#FFFFFF",
+  },
+  roomInfo: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  roomAvatar: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "50%",
+    backgroundColor: "#EFEFEF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "20px",
+  },
+  roomDetails: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  roomTitle: {
+    fontSize: "14px",
+    fontWeight: "600",
+    marginBottom: "4px",
+  },
+  roomSubtitle: {
+    fontSize: "12px",
+    color: "#8E8E8E",
+  },
+  joinButton: {
+    backgroundColor: "transparent",
+    border: "none",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "8px",
+  },
+  emptyState: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "64px 24px",
+    backgroundColor: "#FFFFFF",
+    borderRadius: "8px",
+    border: "1px solid #DBDBDB",
+  },
+  emptyIcon: {
+    fontSize: "48px",
+    marginBottom: "16px",
+  },
+  emptyText: {
+    fontSize: "14px",
+    color: "#8E8E8E",
+    textAlign: "center",
+  },
+  // 사이드바 스타일
+  overlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    zIndex: 9998,
+  },
+  sidebar: {
+    position: "fixed",
+    top: 0,
+    right: 0,
+    width: "350px",
+    height: "100vh",
+    backgroundColor: "#FFFFFF",
+    boxShadow: "-2px 0 10px rgba(0,0,0,0.1)",
+    zIndex: 9999,
+    display: "flex",
+    flexDirection: "column",
+    overflowY: "auto",
+  },
+  sidebarHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px",
+    borderBottom: "1px solid #DBDBDB",
+  },
+  sidebarTitle: {
+    fontSize: "16px",
+    fontWeight: "600",
+    margin: 0,
+  },
+  closeButton: {
+    backgroundColor: "transparent",
+    border: "none",
+    fontSize: "16px",
+    cursor: "pointer",
+    color: "#262626",
+  },
+  profileSection: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: "24px 16px",
+    borderBottom: "1px solid #DBDBDB",
+  },
+  profileAvatar: {
+    width: "80px",
+    height: "80px",
+    borderRadius: "50%",
+    backgroundColor: "#EFEFEF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "36px",
+    marginBottom: "16px",
+  },
+  profileName: {
+    fontSize: "16px",
+    fontWeight: "600",
+    marginBottom: "4px",
+  },
+  profileId: {
+    fontSize: "14px",
+    color: "#8E8E8E",
+  },
+  tabContainer: {
+    display: "flex",
+    borderBottom: "1px solid #DBDBDB",
+  },
+  tabButton: {
+    flex: 1,
+    backgroundColor: "transparent",
+    border: "none",
+    padding: "14px 0",
+    fontSize: "14px",
+    cursor: "pointer",
+    color: "#8E8E8E",
+  },
+  activeTab: {
+    color: "#0095F6",
+    fontWeight: "600",
+    borderBottom: "2px solid #0095F6",
+  },
+  formSection: {
+    padding: "16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  inputLabel: {
+    fontSize: "14px",
+    fontWeight: "600",
+    marginBottom: "4px",
+  },
+  input: {
+    padding: "12px",
+    borderRadius: "6px",
+    border: "1px solid #DBDBDB",
+    fontSize: "14px",
+    backgroundColor: "#FAFAFA",
+    outline: "none",
+  },
+  saveButton: {
+    backgroundColor: "#0095F6",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    padding: "10px 0",
+    fontWeight: "600",
+    fontSize: "14px",
+    cursor: "pointer",
+    marginTop: "8px",
+  },
+  logoutButton: {
+    backgroundColor: "transparent",
+    color: "#ED4956",
+    border: "none",
+    borderTop: "1px solid #DBDBDB",
+    padding: "16px",
+    marginTop: "auto",
+    fontWeight: "600",
+    fontSize: "14px",
+    cursor: "pointer",
+    textAlign: "center",
+  },
+  // 반응형 스타일
+  '@media (max-width: 768px)': {
+    container: {
+      padding: "16px",
+    },
+    sidebar: {
+      width: "100%",
+    },
+  },
 };
 
 export default StudentDashboard;

@@ -1,53 +1,107 @@
 import React, { useEffect, useState } from "react";
-import SectionTitle from "./shared/SectionTitle";
 
 function EvaluateTab({ backend, headers, classId }) {
   const [topics, setTopics] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [filterSender, setFilterSender] = useState("");
-  const [targetStudent, setTargetStudent] = useState("");
-  const [evaluation, setEvaluation] = useState("");
-  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [selectedRooms, setSelectedRooms] = useState({});
+  const [messagesMap, setMessagesMap] = useState({});
+  const [filterSenderMap, setFilterSenderMap] = useState({});
+  const [targetStudentMap, setTargetStudentMap] = useState({});
+  const [evaluationMap, setEvaluationMap] = useState({});
+  const [isEvaluatingMap, setIsEvaluatingMap] = useState({});
+  const [expandedTopics, setExpandedTopics] = useState({});
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const evaluateApi = import.meta.env.VITE_EVALUATE_API;
 
   useEffect(() => {
+    // 주제 목록 가져오기
     fetch(`${backend}/topics?class_id=eq.${classId}`, { headers })
       .then((res) => res.json())
-      .then(setTopics);
+      .then((data) => {
+        setTopics(data);
+        
+        // 초기 확장 상태 설정
+        const initialExpanded = {};
+        data.forEach(topic => {
+          initialExpanded[topic.topic_id] = true; // 기본적으로 모두 펼침
+        });
+        setExpandedTopics(initialExpanded);
+      });
 
+    // 방 목록 가져오기
     fetch(`${backend}/rooms`, { headers })
       .then((res) => res.json())
-      .then(setRooms);
+      .then((data) => {
+        // 방 목록 정렬
+        const sortedData = data.sort((a, b) => {
+          const getGroupNumber = (title) => {
+            const match = title.match(/조\s*(\d+)/);
+            return match ? parseInt(match[1]) : 0;
+          };
+          
+          const aNum = getGroupNumber(a.title);
+          const bNum = getGroupNumber(b.title);
+          return aNum - bNum;
+        });
+        
+        setRooms(sortedData);
+      });
   }, [classId]);
 
-  useEffect(() => {
-    if (selectedRoom) fetchMessages(selectedRoom);
-  }, [selectedRoom]);
-
-  useEffect(() => {
-    if (selectedRoom) fetchEvaluation();
-  }, [selectedRoom, targetStudent]);
-
-  const fetchMessages = async (room) => {
-    const res = await fetch(
-      `${backend}/messages?room_id=eq.${room.room_id}&order=timestamp.asc`,
-      { headers }
-    );
-    const data = await res.json();
-    setMessages(data);
+  const toggleTopic = (topicId) => {
+    setExpandedTopics({
+      ...expandedTopics,
+      [topicId]: !expandedTopics[topicId]
+    });
   };
 
-  const fetchEvaluation = async () => {
-    const studentParam = targetStudent
-      ? `&student_id=eq.${targetStudent}`
+  const selectRoom = async (room) => {
+    // 이미 선택된 방이면 선택 취소
+    if (selectedRooms[room.topic_id] === room.room_id) {
+      const newSelectedRooms = { ...selectedRooms };
+      delete newSelectedRooms[room.topic_id];
+      setSelectedRooms(newSelectedRooms);
+      return;
+    }
+    
+    // 방 선택 상태 업데이트
+    setSelectedRooms({
+      ...selectedRooms,
+      [room.topic_id]: room.room_id
+    });
+    
+    // 메시지 가져오기
+    await fetchMessages(room);
+    
+    // 평가 결과 가져오기
+    await fetchEvaluation(room, targetStudentMap[room.room_id] || "");
+  };
+
+  const fetchMessages = async (room) => {
+    try {
+      const res = await fetch(
+        `${backend}/messages?room_id=eq.${room.room_id}&order=timestamp.asc`,
+        { headers }
+      );
+      const data = await res.json();
+      
+      setMessagesMap({
+        ...messagesMap,
+        [room.room_id]: data
+      });
+    } catch (error) {
+      console.error("메시지 가져오기 실패:", error);
+    }
+  };
+
+  const fetchEvaluation = async (room, student = "") => {
+    const studentParam = student
+      ? `&student_id=eq.${student}`
       : `&student_id=is.null`;
 
-    const url = `${supabaseUrl}/gpt_chat_evaluations?room_id=eq.${selectedRoom.room_id}${studentParam}&order=created_at.desc&limit=1`;
+    const url = `${supabaseUrl}/gpt_chat_evaluations?room_id=eq.${room.room_id}${studentParam}&order=created_at.desc&limit=1`;
 
     try {
       const res = await fetch(url, {
@@ -57,16 +111,27 @@ function EvaluateTab({ backend, headers, classId }) {
         },
       });
       const data = await res.json();
-      setEvaluation(data[0]?.summary || "");
+      
+      setEvaluationMap({
+        ...evaluationMap,
+        [room.room_id + (student || '')]: data[0]?.summary || ""
+      });
     } catch (err) {
-      console.error("❌ 평가 결과 조회 실패 (예외):", err);
-      setEvaluation("");
+      console.error("❌ 평가 결과 조회 실패:", err);
+      
+      setEvaluationMap({
+        ...evaluationMap,
+        [room.room_id + (student || '')]: ""
+      });
     }
   };
 
-  // ✅ 루브릭 수정 함수 추가
   const updateRubric = async (topicId) => {
     const newPrompt = document.getElementById(`rubric-${topicId}`).value;
+    if (!newPrompt.trim()) {
+      alert("루브릭 프롬프트를 입력해주세요.");
+      return;
+    }
 
     try {
       const res = await fetch(`${backend}/topics?topic_id=eq.${topicId}`, {
@@ -82,6 +147,13 @@ function EvaluateTab({ backend, headers, classId }) {
         return;
       }
 
+      // 상태 업데이트
+      setTopics(topics.map(topic => 
+        topic.topic_id === topicId 
+          ? {...topic, rubric_prompt: newPrompt} 
+          : topic
+      ));
+
       alert("✅ 루브릭이 성공적으로 수정되었습니다.");
     } catch (err) {
       console.error("❌ 루브릭 수정 예외:", err);
@@ -89,19 +161,53 @@ function EvaluateTab({ backend, headers, classId }) {
     }
   };
 
-  const evaluateWithGPT = async () => {
-    if (!selectedRoom) return;
+  const setFilterSender = (roomId, value) => {
+    setFilterSenderMap({
+      ...filterSenderMap,
+      [roomId]: value
+    });
+  };
 
-    const topic = topics.find((t) => t.topic_id === selectedRoom.topic_id);
-    if (!topic?.rubric_prompt) {
-      alert("⚠️ 해당 토픽에 루브릭 프롬프트가 없습니다.");
-      return;
+  const setTargetStudent = (roomId, value) => {
+    setTargetStudentMap({
+      ...targetStudentMap,
+      [roomId]: value
+    });
+    
+    // 방 정보 가져오기
+    const roomInfo = rooms.find(r => r.room_id === roomId);
+    if (roomInfo) {
+      fetchEvaluation(roomInfo, value);
     }
+  };
 
-    setIsEvaluating(true);
-    setEvaluation("GPT가 평가 중입니다...");
+  const evaluateWithGPT = async (roomId, topicId) => {
+    // 로딩 상태 설정
+    setIsEvaluatingMap({
+      ...isEvaluatingMap,
+      [roomId]: true
+    });
+    
+    // 임시 메시지 설정
+    setEvaluationMap({
+      ...evaluationMap,
+      [roomId + (targetStudentMap[roomId] || '')]: "GPT가 평가 중입니다..."
+    });
 
     try {
+      const topic = topics.find((t) => t.topic_id === topicId);
+      if (!topic?.rubric_prompt) {
+        alert("⚠️ 해당 토픽에 루브릭 프롬프트가 없습니다.");
+        setIsEvaluatingMap({
+          ...isEvaluatingMap,
+          [roomId]: false
+        });
+        return;
+      }
+
+      const targetStudent = targetStudentMap[roomId] || "";
+      const messages = messagesMap[roomId] || [];
+      
       const filteredMessages = !targetStudent
         ? messages
         : messages.filter((m) => m.sender_id === targetStudent);
@@ -112,7 +218,7 @@ function EvaluateTab({ backend, headers, classId }) {
         body: JSON.stringify({
           topic_id: topic.topic_id,
           rubric_prompt: topic.rubric_prompt,
-          room_id: selectedRoom.room_id,
+          room_id: roomId,
           class_id: topic.class_id,
           target_student: targetStudent || null,
           messages: filteredMessages.map((m) => ({
@@ -124,216 +230,493 @@ function EvaluateTab({ backend, headers, classId }) {
 
       const raw = await res.text();
       const result = JSON.parse(raw);
-      setEvaluation(result.feedback || "📭 GPT 평가 결과 없음");
+      
+      setEvaluationMap({
+        ...evaluationMap,
+        [roomId + (targetStudent || '')]: result.feedback || "📭 GPT 평가 결과 없음"
+      });
     } catch (error) {
       console.error("GPT 평가 오류:", error);
-      setEvaluation("❌ GPT 평가 요청 중 오류가 발생했습니다.");
+      
+      setEvaluationMap({
+        ...evaluationMap,
+        [roomId + (targetStudentMap[roomId] || '')]: "❌ GPT 평가 요청 중 오류가 발생했습니다."
+      });
     }
 
-    setIsEvaluating(false);
+    // 로딩 상태 해제
+    setIsEvaluatingMap({
+      ...isEvaluatingMap,
+      [roomId]: false
+    });
   };
 
-  const senders = [...new Set(messages.map((m) => m.sender_id))];
+  // 특정 방의 메시지들에서 보낸 사람 목록 가져오기
+  const getSenders = (roomId) => {
+    const messages = messagesMap[roomId] || [];
+    return [...new Set(messages.map((m) => m.sender_id))];
+  };
 
   return (
-    <div>
-      <SectionTitle>채팅방 평가</SectionTitle>
-
-      {topics
-        .filter((t) => rooms.some((r) => r.topic_id === t.topic_id))
-        .map((t) => (
-          <div key={t.topic_id} style={styles.topicSection}>
-            <h4 style={styles.topicTitle}>{t.title}</h4>
-            <textarea
-              id={`rubric-${t.topic_id}`}
-              defaultValue={t.rubric_prompt}
-              style={styles.textarea}
-            />
-            <button onClick={() => updateRubric(t.topic_id)} style={styles.buttonBlue}>
-              루브릭 수정
-            </button>
-
-            <div style={styles.roomList}>
-              {rooms
-                .filter((r) => r.topic_id === t.topic_id)
-                .map((r) => (
-                  <button
-                    key={r.room_id}
-                    onClick={() => setSelectedRoom(r)}
-                    style={{
-                      ...styles.roomButton,
-                      backgroundColor: selectedRoom?.room_id === r.room_id ? "#e0f7fa" : "#f1f1f1",
-                    }}
-                  >
-                    {r.title}
-                  </button>
-                ))}
-            </div>
-          </div>
-        ))}
-
-      {selectedRoom && (
-        <div style={styles.chatBox}>
-          <h4 style={styles.chatTitle}>💬 {selectedRoom.title}</h4>
-
-          {/* 화자 필터 */}
-          <div style={styles.filterRow}>
-            <label>화자 필터:</label>
-            <select
-              value={filterSender}
-              onChange={(e) => setFilterSender(e.target.value)}
-              style={styles.select}
-            >
-              <option value="">전체</option>
-              {senders.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 메시지 출력 */}
-          <div style={styles.messageList}>
-            {messages
-              .filter((m) => !filterSender || m.sender_id === filterSender)
-              .map((m, i) => (
-                <div key={i} style={styles.messageItem}>
-                  <strong>{m.sender_id}</strong>: {m.message}
+    <div style={styles.container}>
+      <h3 style={styles.title}>채팅방 평가</h3>
+      
+      {topics.length === 0 ? (
+        <div style={styles.emptyState}>
+          <div style={styles.emptyIcon}>📊</div>
+          <p style={styles.emptyText}>평가할 채팅방이 없습니다.</p>
+          <p style={styles.emptySubtext}>
+            먼저 '채팅방 생성' 탭에서 채팅방을 만들어보세요.
+          </p>
+        </div>
+      ) : (
+        <div style={styles.topicList}>
+          {topics
+            .filter((t) => rooms.some((r) => r.topic_id === t.topic_id))
+            .map((topic) => (
+              <div key={topic.topic_id} style={styles.topicCard}>
+                <div 
+                  style={styles.topicHeader}
+                  onClick={() => toggleTopic(topic.topic_id)}
+                >
+                  <div style={styles.topicInfo}>
+                    <h4 style={styles.topicTitle}>{topic.title}</h4>
+                    <span style={styles.roomCount}>
+                      채팅방 {rooms.filter(r => r.topic_id === topic.topic_id).length}개
+                    </span>
+                  </div>
+                  <div style={styles.expandIcon}>
+                    {expandedTopics[topic.topic_id] ? '▼' : '▶'}
+                  </div>
                 </div>
-              ))}
-          </div>
-
-          {/* 평가 대상 + 평가 버튼 */}
-          <div style={styles.filterRow}>
-            <label>평가 대상:</label>
-            <select
-              value={targetStudent}
-              onChange={(e) => setTargetStudent(e.target.value)}
-              style={styles.select}
-            >
-              <option value="">전체 학생</option>
-              {senders.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-
-            <button
-              onClick={evaluateWithGPT}
-              disabled={isEvaluating}
-              style={styles.buttonBlue}
-            >
-              {isEvaluating
-                ? "GPT 평가 중..."
-                : `GPT로 평가하기 (${targetStudent || "전체"})`}
-            </button>
-          </div>
-
-          {/* 평가 결과 */}
-          {evaluation ? (
-            <div style={styles.evaluationBox}>
-              <h5>GPT 평가 결과</h5>
-              <pre style={{ whiteSpace: "pre-wrap" }}>{evaluation}</pre>
-            </div>
-          ) : (
-            !isEvaluating && (
-              <div style={{ marginTop: "1rem", fontStyle: "italic", color: "#999" }}>
-                평가 결과가 없습니다.
+                
+                {expandedTopics[topic.topic_id] && (
+                  <div style={styles.topicContent}>
+                    <div style={styles.rubricSection}>
+                      <label style={styles.rubricLabel}>
+                        평가 루브릭 프롬프트
+                      </label>
+                      <textarea
+                        id={`rubric-${topic.topic_id}`}
+                        defaultValue={topic.rubric_prompt}
+                        style={styles.textarea}
+                        placeholder="학생들의 대화를 평가하기 위한 기준을 입력하세요"
+                      />
+                      <button 
+                        onClick={() => updateRubric(topic.topic_id)} 
+                        style={styles.updateButton}
+                      >
+                        루브릭 업데이트
+                      </button>
+                    </div>
+                    
+                    <div style={styles.roomsSection}>
+                      <h5 style={styles.roomsTitle}>채팅방 목록</h5>
+                      <div style={styles.roomList}>
+                        {rooms
+                          .filter((r) => r.topic_id === topic.topic_id)
+                          .map((room) => (
+                            <button
+                              key={room.room_id}
+                              onClick={() => selectRoom(room)}
+                              style={{
+                                ...styles.roomButton,
+                                backgroundColor: selectedRooms[topic.topic_id] === room.room_id ? "#E0F1FD" : "#F8F8F8",
+                                borderColor: selectedRooms[topic.topic_id] === room.room_id ? "#0095F6" : "#DBDBDB",
+                                color: selectedRooms[topic.topic_id] === room.room_id ? "#0095F6" : "#262626"
+                              }}
+                            >
+                              {room.title}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                    
+                    {/* 선택된 채팅방이 있고, 현재 주제에 속한다면 보여줌 */}
+                    {selectedRooms[topic.topic_id] && (
+                      <RoomDetail
+                        room={rooms.find(r => r.room_id === selectedRooms[topic.topic_id])}
+                        messages={messagesMap[selectedRooms[topic.topic_id]] || []}
+                        filterSender={filterSenderMap[selectedRooms[topic.topic_id]] || ""}
+                        setFilterSender={(value) => setFilterSender(selectedRooms[topic.topic_id], value)}
+                        targetStudent={targetStudentMap[selectedRooms[topic.topic_id]] || ""}
+                        setTargetStudent={(value) => setTargetStudent(selectedRooms[topic.topic_id], value)}
+                        evaluation={evaluationMap[selectedRooms[topic.topic_id] + (targetStudentMap[selectedRooms[topic.topic_id]] || '')] || ""}
+                        isEvaluating={isEvaluatingMap[selectedRooms[topic.topic_id]] || false}
+                        evaluateWithGPT={() => evaluateWithGPT(selectedRooms[topic.topic_id], topic.topic_id)}
+                        senders={getSenders(selectedRooms[topic.topic_id])}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
-            )
-          )}
+            ))}
         </div>
       )}
     </div>
   );
 }
 
+// 채팅방 상세 컴포넌트로 분리
+function RoomDetail({ 
+  room, 
+  messages, 
+  filterSender, 
+  setFilterSender,
+  targetStudent,
+  setTargetStudent,
+  evaluation,
+  isEvaluating,
+  evaluateWithGPT,
+  senders
+}) {
+  if (!room) return null;
+  
+  return (
+    <div style={styles.chatBox}>
+      <h4 style={styles.chatTitle}>💬 {room.title} 대화 내용</h4>
+
+      {/* 화자 필터 */}
+      <div style={styles.filterRow}>
+        <label style={styles.filterLabel}>화자 필터:</label>
+        <select
+          value={filterSender}
+          onChange={(e) => setFilterSender(e.target.value)}
+          style={styles.select}
+        >
+          <option value="">전체 보기</option>
+          {senders.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* 메시지 출력 */}
+      <div style={styles.messageList}>
+        {messages.length === 0 ? (
+          <div style={styles.noMessages}>
+            아직 대화 내용이 없습니다.
+          </div>
+        ) : (
+          messages
+            .filter((m) => !filterSender || m.sender_id === filterSender)
+            .map((message, i) => (
+              <div key={i} style={styles.messageItem}>
+                <div style={styles.messageSender}>{message.sender_id}</div>
+                <div style={styles.messageContent}>{message.message}</div>
+              </div>
+            ))
+        )}
+      </div>
+
+      {/* 평가 대상 + 평가 버튼 */}
+      <div style={styles.evaluationSection}>
+        <h5 style={styles.evaluationTitle}>GPT 평가</h5>
+        
+        <div style={styles.filterRow}>
+          <label style={styles.filterLabel}>평가 대상:</label>
+          <select
+            value={targetStudent}
+            onChange={(e) => setTargetStudent(e.target.value)}
+            style={styles.select}
+          >
+            <option value="">전체 학생</option>
+            {senders.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={evaluateWithGPT}
+            disabled={isEvaluating}
+            style={styles.evaluateButton}
+          >
+            {isEvaluating
+              ? "평가 중..."
+              : `GPT로 평가하기 ${targetStudent ? `(${targetStudent})` : ''}`}
+          </button>
+        </div>
+
+        {/* 평가 결과 */}
+        {evaluation ? (
+          <div style={styles.evaluationBox}>
+            <h6 style={styles.evaluationResultTitle}>GPT 평가 결과</h6>
+            <div style={styles.evaluationContent}>{evaluation}</div>
+          </div>
+        ) : (
+          !isEvaluating && (
+            <div style={styles.noEvaluation}>
+              아직 평가 결과가 없습니다.
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
 const styles = {
-  topicSection: {
-    padding: "1rem",
-    marginBottom: "2rem",
-    borderBottom: "1px solid #ddd",
+  container: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: "8px",
+    padding: "16px",
+  },
+  title: {
+    fontSize: "20px",
+    fontWeight: "600",
+    color: "#262626",
+    marginBottom: "16px",
+    borderBottom: "1px solid #DBDBDB",
+    paddingBottom: "16px",
+  },
+  emptyState: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "40px 16px",
+    backgroundColor: "#FAFAFA",
+    borderRadius: "8px",
+    border: "1px solid #DBDBDB",
+  },
+  emptyIcon: {
+    fontSize: "48px",
+    marginBottom: "16px",
+  },
+  emptyText: {
+    fontSize: "16px",
+    fontWeight: "600",
+    color: "#262626",
+    margin: "0 0 8px 0",
+  },
+  emptySubtext: {
+    fontSize: "14px",
+    color: "#8E8E8E",
+    margin: "0",
+    textAlign: "center",
+  },
+  topicList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+  topicCard: {
+    border: "1px solid #DBDBDB",
+    borderRadius: "8px",
+    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
+  },
+  topicHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px",
+    backgroundColor: "#FAFAFA",
+    borderBottom: "1px solid #DBDBDB",
+    cursor: "pointer",
+  },
+  topicInfo: {
+    display: "flex",
+    flexDirection: "column",
   },
   topicTitle: {
-    fontSize: "1.2rem",
+    fontSize: "16px",
     fontWeight: "600",
-    marginBottom: "0.5rem",
+    color: "#262626",
+    margin: "0 0 4px 0",
+  },
+  roomCount: {
+    fontSize: "12px",
+    color: "#8E8E8E",
+  },
+  expandIcon: {
+    color: "#8E8E8E",
+    fontSize: "12px",
+  },
+  topicContent: {
+    padding: "16px",
+  },
+  rubricSection: {
+    marginBottom: "20px",
+  },
+  rubricLabel: {
+    display: "block",
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#262626",
+    marginBottom: "8px",
   },
   textarea: {
     width: "100%",
-    padding: "0.5rem",
-    marginBottom: "0.5rem",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    fontSize: "1rem",
+    minHeight: "100px",
+    padding: "12px",
+    fontSize: "14px",
+    border: "1px solid #DBDBDB",
+    borderRadius: "4px",
+    backgroundColor: "#FAFAFA",
+    marginBottom: "8px",
+    resize: "vertical",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
   },
-  buttonBlue: {
-    backgroundColor: "#1976d2",
-    color: "white",
+  updateButton: {
+    backgroundColor: "#0095F6",
+    color: "#FFFFFF",
     border: "none",
-    padding: "0.4rem 0.8rem",
-    borderRadius: "6px",
+    borderRadius: "4px",
+    padding: "8px 16px",
+    fontSize: "14px",
+    fontWeight: "600",
     cursor: "pointer",
-    marginTop: "0.25rem",
+    transition: "background-color 0.2s",
+  },
+  roomsSection: {
+    marginBottom: "20px",
+    borderTop: "1px solid #EFEFEF",
+    paddingTop: "16px",
+  },
+  roomsTitle: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#262626",
+    margin: "0 0 12px 0",
   },
   roomList: {
     display: "flex",
     flexWrap: "wrap",
-    gap: "0.5rem",
-    marginTop: "0.5rem",
+    gap: "8px",
   },
   roomButton: {
-    padding: "0.4rem 0.8rem",
-    border: "1px solid #bbb",
-    borderRadius: "6px",
+    padding: "8px 12px",
+    borderRadius: "4px",
+    border: "1px solid #DBDBDB",
+    backgroundColor: "#F8F8F8",
+    fontSize: "14px",
     cursor: "pointer",
+    transition: "all 0.2s",
   },
   chatBox: {
-    padding: "1rem",
-    backgroundColor: "#fafafa",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
+    backgroundColor: "#FFFFFF",
+    border: "1px solid #DBDBDB",
+    borderRadius: "8px",
+    padding: "16px",
+    marginTop: "16px",
   },
   chatTitle: {
-    marginBottom: "1rem",
-    fontSize: "1.1rem",
+    fontSize: "16px",
     fontWeight: "600",
+    color: "#262626",
+    marginBottom: "16px",
+    borderBottom: "1px solid #EFEFEF",
+    paddingBottom: "8px",
   },
   filterRow: {
-    marginBottom: "1rem",
     display: "flex",
-    gap: "0.5rem",
     alignItems: "center",
+    gap: "8px",
+    marginBottom: "12px",
+  },
+  filterLabel: {
+    fontSize: "14px",
+    color: "#262626",
+    fontWeight: "500",
   },
   select: {
-    padding: "0.3rem 0.5rem",
+    padding: "8px 12px",
     borderRadius: "4px",
-    border: "1px solid #ccc",
+    border: "1px solid #DBDBDB",
+    backgroundColor: "#FAFAFA",
+    fontSize: "14px",
+    color: "#262626",
   },
   messageList: {
-    backgroundColor: "white",
-    padding: "1rem",
-    borderRadius: "6px",
-    border: "1px solid #ddd",
+    backgroundColor: "#FAFAFA",
+    borderRadius: "8px",
+    border: "1px solid #EFEFEF",
+    padding: "16px",
     maxHeight: "300px",
     overflowY: "auto",
-    marginBottom: "1rem",
+    marginBottom: "16px",
+  },
+  noMessages: {
+    fontSize: "14px",
+    color: "#8E8E8E",
+    fontStyle: "italic",
+    textAlign: "center",
+    padding: "16px",
   },
   messageItem: {
-    marginBottom: "0.5rem",
-    fontSize: "0.95rem",
+    marginBottom: "12px",
+    borderBottom: "1px solid #EFEFEF",
+    paddingBottom: "8px",
+  },
+  messageSender: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#262626",
+    marginBottom: "4px",
+  },
+  messageContent: {
+    fontSize: "14px",
+    color: "#262626",
+    lineHeight: "1.4",
+  },
+  evaluationSection: {
+    borderTop: "1px solid #EFEFEF",
+    paddingTop: "16px",
+  },
+  evaluationTitle: {
+    fontSize: "16px",
+    fontWeight: "600", 
+    color: "#262626",
+    marginBottom: "12px",
+    margin: "0 0 12px 0",
+  },
+  evaluateButton: {
+    backgroundColor: "#0095F6",
+    color: "#FFFFFF",
+    border: "none",
+    borderRadius: "4px",
+    padding: "8px 16px",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    marginLeft: "auto",
   },
   evaluationBox: {
-    marginTop: "1rem",
-    padding: "1rem",
-    backgroundColor: "#f9f9f9",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    fontSize: "0.95rem",
-    lineHeight: "1.5",
+    backgroundColor: "#F9F9F9",
+    border: "1px solid #EFEFEF",
+    borderRadius: "8px",
+    padding: "16px",
+    marginTop: "12px",
   },
+  evaluationResultTitle: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#262626",
+    marginBottom: "8px",
+    margin: "0 0 8px 0",
+  },
+  evaluationContent: {
+    fontSize: "14px",
+    color: "#262626",
+    lineHeight: "1.5",
+    whiteSpace: "pre-wrap",
+  },
+  noEvaluation: {
+    fontSize: "14px",
+    color: "#8E8E8E",
+    fontStyle: "italic",
+    textAlign: "center",
+    padding: "16px",
+    backgroundColor: "#F9F9F9",
+    borderRadius: "8px",
+    marginTop: "12px",
+  }
 };
 
 export default EvaluateTab;
