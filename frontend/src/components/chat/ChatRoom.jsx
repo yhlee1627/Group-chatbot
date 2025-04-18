@@ -13,6 +13,7 @@ function ChatRoom() {
   const [isGPT, setIsGPT] = useState(false);
   const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768);
   const [userNames, setUserNames] = useState({});
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   const navigate = useNavigate();
   const studentId = localStorage.getItem("studentId");
@@ -27,6 +28,8 @@ function ChatRoom() {
   // 화면 크기 변경에 따른 사이드바 표시 여부 설정
   useEffect(() => {
     const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
       setShowSidebar(window.innerWidth > 768);
     };
 
@@ -166,11 +169,24 @@ function ChatRoom() {
 
   return (
     <div style={styles.container}>
+      {/* 모바일 모드에서 사이드바가 열렸을 때 배경에 오버레이 추가 */}
+      {isMobile && showSidebar && (
+        <div 
+          style={styles.overlay}
+          onClick={toggleSidebar}
+        />
+      )}
+    
       {/* 사이드바 - 모바일에서는 숨김 */}
       {showSidebar && (
         <div style={styles.sidebar}>
           <div style={styles.sidebarHeader}>
             <h2 style={styles.sidebarTitle}>채팅</h2>
+            {isMobile && (
+              <button onClick={toggleSidebar} style={styles.closeButton}>
+                ✕
+              </button>
+            )}
           </div>
           <div style={styles.chatList}>
             <div style={styles.chatItem}>
@@ -257,6 +273,8 @@ const styles = {
     flexDirection: "column",
     height: "100vh",
     overflowY: "auto",
+    position: "relative",
+    zIndex: 1001, // 오버레이보다 높은 z-index
   },
   sidebarHeader: {
     padding: "20px",
@@ -396,14 +414,36 @@ const styles = {
     color: "#262626",
     userSelect: "none",
   },
-  // 반응형 스타일 추가
+  closeButton: {
+    background: "none",
+    border: "none",
+    fontSize: "20px",
+    cursor: "pointer",
+    padding: "0",
+    color: "#262626",
+  },
+  // 반응형 스타일 수정
   '@media (max-width: 768px)': {
     sidebar: {
-      display: 'none',
+      position: 'fixed',
+      left: 0,
+      top: 0,
+      width: '80%',
+      maxWidth: '300px',
+      zIndex: 1001,
     },
     mainContent: {
       width: '100%',
     }
+  },
+  overlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 1000,
   },
 };
 

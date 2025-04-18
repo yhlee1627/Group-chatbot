@@ -81,6 +81,28 @@ const styles = {
     marginBottom: "4px",
   },
 
+  // 🧠 GPT reasoning 컨테이너
+  reasoningContainer: {
+    marginTop: "8px",
+    padding: "8px",
+    backgroundColor: "rgba(0, 0, 0, 0.03)",
+    borderRadius: "8px",
+    fontSize: "12px",
+  },
+
+  // 🧠 GPT reasoning 제목
+  reasoningTitle: {
+    fontWeight: "600",
+    color: "#555555",
+    marginBottom: "4px",
+  },
+
+  // 🧠 GPT reasoning 텍스트
+  reasoningText: {
+    color: "#666666",
+    fontStyle: "italic",
+  },
+
   // 📝 시스템 메시지 (중앙 안내 등)
   systemMessage: {
     textAlign: "center",

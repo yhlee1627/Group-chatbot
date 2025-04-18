@@ -30,6 +30,7 @@ create table if not exists messages (
   sender_id text, -- "s01", "gpt" 등
   message text,
   role text check (role in ('user', 'assistant')),
+  reasoning text,
   timestamp timestamptz default now()
 );
 

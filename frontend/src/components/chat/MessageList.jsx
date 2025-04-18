@@ -86,6 +86,14 @@ function MessageList({ messages, studentId, isAdmin = false }) {
               )}
 
               <div>{msg.message}</div>
+              
+              {/* 🧠 관리자에게만 reasoning 표시 */}
+              {isAdmin && isGPT && msg.reasoning && (
+                <div style={styles.reasoningContainer}>
+                  <div style={styles.reasoningTitle}>GPT 판단 이유:</div>
+                  <div style={styles.reasoningText}>{msg.reasoning}</div>
+                </div>
+              )}
 
               {time && (
                 <div

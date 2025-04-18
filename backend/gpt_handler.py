@@ -28,16 +28,20 @@ class GPTInterventionService:
         judgment_instruction = """
 이 채팅방은 위와 같은 목적을 가진 공간입니다.
 
-GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 여부를 판단하세요:
+GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 판단하세요:
 
-- 특정 학생이 "모르겠어요", "하기 싫어요", "잘 모르겠네" 등 혼란, 부정, 거부 표현을 하면 그 학생에게 개입하세요.
-- 대화가 끊기거나 소수만 말하고 있거나 주제에서 벗어난 경우 전체에게 개입하세요.
-- 대화가 활발하게 잘 진행되고 있다면 개입하지 마세요. 대신 긍정적인 피드백을 주세요.
+상황 1: 학생들이 주어진 주제에 맞게 잘 토론하고 있다면 → 긍정적인 피드백 (응답 유형: "positive")
+상황 2: 학생들이 주어진 주제와 맞지 않게 대화하거나 방향성이 필요한 경우 → 방향 제시 피드백 (응답 유형: "guidance")
+상황 3: 특정 학생이 잘 참여하지 못하거나 방향이 다른 말을 하는 경우 → 개인 피드백 (응답 유형: "individual")
+상황 4: 개입이 불필요한 경우 → 개입하지 않음 (응답 유형: "none")
 
-다음 중 하나의 JSON만 응답하세요:
-{ "should_respond": false }
-{ "should_respond": true, "target": "s02" }
-{ "should_respond": true, "target": null }
+다음 형식의 JSON으로 응답하세요:
+{
+  "intervention_type": "positive" 또는 "guidance" 또는 "individual" 또는 "none",
+  "target_student": null 또는 "s02" (개인 피드백인 경우만 학생 ID 지정),
+  "reasoning": "판단 이유를 간략히 설명"
+  
+}
 
 ⚠️ JSON 외의 설명은 절대 포함하지 마세요.
 """
@@ -57,42 +61,69 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 여부를 �
             )
             raw = response.choices[0].message.content.strip()
             print("🧠 GPT 판단 응답:", raw)
-            return json.loads(raw)
+            result = json.loads(raw)
+            
+            # 이전 형식과의 호환성 유지
+            should_respond = result["intervention_type"] != "none"
+            target = result.get("target_student") if result["intervention_type"] == "individual" else None
+            
+            return {
+                "should_respond": should_respond,
+                "target": target,
+                "intervention_type": result["intervention_type"],
+                "reasoning": result.get("reasoning", "")
+            }
         except Exception as e:
             print("❌ 판단 오류:", e)
-            return {"should_respond": False}
+            return {"should_respond": False, "intervention_type": "none", "target": None}
 
     async def generate_feedback(self, recent_messages, intervention_type, target=None):
         system_prompt = await get_system_prompt(self.room_id)
-
+        chat_text = "\n".join([f"{m.get('name', m['sender_id'])}: {m['message']}" for m in recent_messages])
+        
+        feedback_instruction = ""
+        
         if intervention_type == "positive":
-            system_prompt += """
-현재 학생들의 대화는 원활하게 잘 이어지고 있습니다.
-학생들에게 긍정적인 피드백을 한 문장으로 전해주세요.
+            feedback_instruction = """
+학생들이 주어진 주제에 맞게 잘 토론하고 있습니다.
+긍정적인 피드백을 통해 학생들의 대화를 장려해주세요.
+짧고 명확한 문장으로 학생들의 좋은 점을 칭찬하고 계속 대화를 이어가도록 동기부여 해주세요.
 """
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": "학생들의 대화를 긍정적으로 평가해 주세요."}
-            ]
             temperature = 0.5
-
-        else:
-            chat_text = "\n".join([f"{m.get('name', m['sender_id'])}: {m['message']}" for m in recent_messages])
-            system_prompt += f"""
-너는 {"특정 학생(" + target + ")" if target else "전체 학생"}에게 피드백을 주는 교사입니다.
-학생의 상황에 맞게 따뜻하고 명확하게 도와주세요.
-글은 50자를 넘지 않도록 명심하세요.
+            
+        elif intervention_type == "guidance":
+            feedback_instruction = """
+학생들이 주어진 주제에서 벗어나고 있거나 방향성이 필요합니다.
+주제로 다시 집중할 수 있도록 안내해주세요.
+친절하고 명확한 방향 제시와 함께 구체적인 질문이나 활동을 제안해주세요.
+100자 내외로 짧고 효과적인 피드백을 작성하세요.
 """
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"최근 대화:\n{chat_text}"}
-            ]
             temperature = 0.7
+            
+        elif intervention_type == "individual":
+            student_name = get_student_name(target) if target else "학생"
+            feedback_instruction = f"""
+특정 학생({student_name}, ID: {target})에게 개인적인 피드백이 필요합니다.
+이 학생은 참여가 부족하거나 토론 방향과 다른 대화를 하고 있습니다.
+학생을 존중하면서도 명확하게 도움을 주는 개인 피드백을 작성하세요.
+이 메시지는 해당 학생에게만 보이는 귓속말로 전달됩니다.
+100자 내외로 간결하고 효과적으로 작성하세요.
+"""
+            temperature = 0.7
+        
+        else:
+            # 개입이 없는 경우 (이 코드는 실행되지 않아야 함)
+            return "피드백이 필요하지 않습니다."
+
+        prompt_messages = [
+            {"role": "system", "content": f"{system_prompt}\n\n{feedback_instruction}"},
+            {"role": "user", "content": f"최근 대화:\n{chat_text}"}
+        ]
 
         try:
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=messages,
+                messages=prompt_messages,
                 temperature=temperature
             )
             return response.choices[0].message.content.strip()
@@ -103,15 +134,32 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 여부를 �
     async def process_auto_intervention(self, recent_messages, sid_to_user, sio):
         judgment = await self.should_respond(recent_messages)
         should_respond = judgment.get("should_respond", False)
-        target = judgment.get("target") if should_respond else None
-
-        intervention_type = "intervene" if should_respond else "positive"
+        intervention_type = judgment.get("intervention_type", "none")
+        target = judgment.get("target")
+        reasoning = judgment.get("reasoning", "")
+        
+        if not should_respond:
+            print("🤖 GPT 판단: 개입 불필요")
+            return
+            
+        print(f"🤖 GPT 판단: {intervention_type} 유형 피드백 제공" + (f" ({target}에게)" if target else ""))
+        
         gpt_text = await self.generate_feedback(recent_messages, intervention_type, target)
         gpt_time = datetime.utcnow().isoformat()
 
-        await save_message_to_db(self.room_id, "gpt", gpt_text, "assistant", gpt_time)
+        # 메시지 DB 저장
+        await save_message_to_db(
+            self.room_id, 
+            "gpt", 
+            gpt_text, 
+            "assistant", 
+            gpt_time, 
+            whisper_to=target if intervention_type == "individual" else None,
+            reasoning=reasoning
+        )
 
-        if should_respond and target:
+        if intervention_type == "individual" and target:
+            # 개인 피드백 (귓속말)
             for sid, uid in sid_to_user.items():
                 if uid == target:
                     await sio.emit("receive_message", {
@@ -119,16 +167,23 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 여부를 �
                         "message": gpt_text,
                         "role": "assistant",
                         "timestamp": gpt_time,
-                        "target": target
+                        "target": target,
+                        "whisper": True,
+                        "reasoning": reasoning
                     }, to=sid)
+                    print(f"✉️ 귓속말 전송: {target}에게")
                     return
         else:
+            # 전체 피드백
             await sio.emit("receive_message", {
                 "sender_id": "gpt",
                 "message": gpt_text,
                 "role": "assistant",
-                "timestamp": gpt_time
+                "timestamp": gpt_time,
+                "feedback_type": intervention_type,
+                "reasoning": reasoning
             }, room=self.room_id)
+            print(f"📢 전체 메시지 전송: {intervention_type} 유형")
 
 # ─────────── 평가 전용 함수 (GPT 평가 생성) ───────────
 async def evaluate_conversation(rubric_prompt: str, messages: list[dict]) -> str:
