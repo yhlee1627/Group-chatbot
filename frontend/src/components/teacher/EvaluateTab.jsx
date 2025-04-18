@@ -5,6 +5,7 @@ function EvaluateTab({ backend, headers, classId }) {
   const [rooms, setRooms] = useState([]);
   const [selectedRooms, setSelectedRooms] = useState({});
   const [messagesMap, setMessagesMap] = useState({});
+  const [gptInterventionsMap, setGptInterventionsMap] = useState({});
   const [filterSenderMap, setFilterSenderMap] = useState({});
   const [targetStudentMap, setTargetStudentMap] = useState({});
   const [evaluationMap, setEvaluationMap] = useState({});
@@ -75,6 +76,9 @@ function EvaluateTab({ backend, headers, classId }) {
     // 메시지 가져오기
     await fetchMessages(room);
     
+    // GPT 개입 로그 가져오기
+    await fetchGptInterventions(room);
+    
     // 평가 결과 가져오기
     await fetchEvaluation(room, targetStudentMap[room.room_id] || "");
   };
@@ -93,6 +97,28 @@ function EvaluateTab({ backend, headers, classId }) {
       });
     } catch (error) {
       console.error("메시지 가져오기 실패:", error);
+    }
+  };
+  
+  const fetchGptInterventions = async (room) => {
+    try {
+      const url = `${supabaseUrl}/rest/v1/gpt_interventions?room_id=eq.${room.room_id}&order=timestamp.asc`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      });
+      const data = await res.json();
+      
+      setGptInterventionsMap({
+        ...gptInterventionsMap,
+        [room.room_id]: data
+      });
+      
+      console.log("GPT 개입 로그:", data);
+    } catch (error) {
+      console.error("GPT 개입 로그 가져오기 실패:", error);
     }
   };
 
@@ -337,6 +363,7 @@ function EvaluateTab({ backend, headers, classId }) {
                       <RoomDetail
                         room={rooms.find(r => r.room_id === selectedRooms[topic.topic_id])}
                         messages={messagesMap[selectedRooms[topic.topic_id]] || []}
+                        gptInterventions={gptInterventionsMap[selectedRooms[topic.topic_id]] || []}
                         filterSender={filterSenderMap[selectedRooms[topic.topic_id]] || ""}
                         setFilterSender={(value) => setFilterSender(selectedRooms[topic.topic_id], value)}
                         targetStudent={targetStudentMap[selectedRooms[topic.topic_id]] || ""}
@@ -361,6 +388,7 @@ function EvaluateTab({ backend, headers, classId }) {
 function RoomDetail({ 
   room, 
   messages, 
+  gptInterventions,
   filterSender, 
   setFilterSender,
   targetStudent,
@@ -371,6 +399,21 @@ function RoomDetail({
   senders
 }) {
   if (!room) return null;
+  
+  // 메시지 ID별로 개입 로그 매핑
+  const interventionsByMessageId = {};
+  
+  // gptInterventions이 배열인지 확인
+  if (Array.isArray(gptInterventions)) {
+    gptInterventions.forEach(intervention => {
+      if (intervention && intervention.message_id) {
+        interventionsByMessageId[intervention.message_id] = intervention;
+      }
+    });
+  }
+  
+  // 안전하게 messages 확인
+  const safeMessages = Array.isArray(messages) ? messages : [];
   
   return (
     <div style={styles.chatBox}>
@@ -395,19 +438,77 @@ function RoomDetail({
 
       {/* 메시지 출력 */}
       <div style={styles.messageList}>
-        {messages.length === 0 ? (
+        {safeMessages.length === 0 ? (
           <div style={styles.noMessages}>
             아직 대화 내용이 없습니다.
           </div>
         ) : (
-          messages
+          safeMessages
             .filter((m) => !filterSender || m.sender_id === filterSender)
-            .map((message, i) => (
-              <div key={i} style={styles.messageItem}>
-                <div style={styles.messageSender}>{message.sender_id}</div>
-                <div style={styles.messageContent}>{message.message}</div>
-              </div>
-            ))
+            .map((message, i) => {
+              try {
+                // 필수 필드 확인
+                if (!message || typeof message !== 'object') {
+                  return null; // 잘못된 메시지 형식은 건너뜀
+                }
+                
+                // 이 메시지가 GPT의 응답이라면 reasoning 정보와 개입 유형 표시
+                const isGptMessage = message.sender_id === "gpt";
+                const intervention = message.message_id ? interventionsByMessageId[message.message_id] : null;
+                
+                return (
+                  <div key={i} style={isGptMessage ? styles.gptMessageItem : styles.messageItem}>
+                    <div style={styles.messageSender}>{message.sender_id || "unknown"}</div>
+                    
+                    {/* GPT 메시지의 경우 판단 근거와 개입 유형 표시 */}
+                    {isGptMessage && message.reasoning && (
+                      <div style={styles.gptReasoning}>
+                        <span style={styles.reasoningLabel}>GPT 판단 근거:</span> {message.reasoning}
+                      </div>
+                    )}
+                    
+                    {/* 메시지 내용 */}
+                    <div style={styles.messageContent}>{message.message || ""}</div>
+                    
+                    {/* 개입 로그에서 추가 정보 가져오기 */}
+                    {isGptMessage && intervention && (
+                      <div style={styles.interventionInfo}>
+                        <div style={styles.interventionBadge}>
+                          개입 유형: 
+                          <span style={{
+                            ...styles.interventionType,
+                            backgroundColor: getInterventionColor(intervention.intervention_type)
+                          }}>
+                            {getInterventionLabel(intervention.intervention_type)}
+                          </span>
+                        </div>
+                        
+                        {intervention.target_student && (
+                          <div style={styles.targetStudent}>
+                            대상 학생: {intervention.target_student}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* 귓속말 표시 */}
+                    {message.whisper_to && (
+                      <div style={styles.whisperBadge}>
+                        귓속말: {message.whisper_to}
+                      </div>
+                    )}
+                  </div>
+                );
+              } catch (error) {
+                console.error("메시지 렌더링 오류:", error, message);
+                return (
+                  <div key={i} style={styles.errorMessage}>
+                    메시지 표시 중 오류가 발생했습니다.
+                  </div>
+                );
+              }
+            })
+            .filter(Boolean) // null 항목 제거
         )}
       </div>
 
@@ -457,6 +558,38 @@ function RoomDetail({
       </div>
     </div>
   );
+}
+
+// 개입 유형에 따른 색상 반환
+function getInterventionColor(type) {
+  if (!type) return '#9E9E9E'; // 기본값
+  
+  switch (type) {
+    case 'positive':
+      return '#4CAF50'; // 녹색
+    case 'guidance':
+      return '#2196F3'; // 파란색
+    case 'individual':
+      return '#FF9800'; // 주황색
+    default:
+      return '#9E9E9E'; // 회색
+  }
+}
+
+// 개입 유형에 따른 레이블 반환
+function getInterventionLabel(type) {
+  if (!type) return '알 수 없음';
+  
+  switch (type) {
+    case 'positive':
+      return '긍정 피드백';
+    case 'guidance':
+      return '방향 제시';
+    case 'individual':
+      return '개인 피드백';
+    default:
+      return type;
+  }
 }
 
 const styles = {
@@ -716,7 +849,71 @@ const styles = {
     backgroundColor: "#F9F9F9",
     borderRadius: "8px",
     marginTop: "12px",
-  }
+  },
+  gptMessageItem: {
+    marginBottom: "12px",
+    borderBottom: "1px solid #EFEFEF",
+    paddingBottom: "12px",
+    backgroundColor: "#F1F8FF",
+    padding: "12px",
+    borderRadius: "8px",
+    border: "1px solid #E1ECFF",
+  },
+  gptReasoning: {
+    fontSize: "12px",
+    color: "#666666",
+    backgroundColor: "#F9F9F9",
+    padding: "8px",
+    borderRadius: "4px",
+    marginBottom: "8px",
+    border: "1px dashed #E0E0E0",
+  },
+  reasoningLabel: {
+    fontWeight: "600",
+    color: "#444444",
+  },
+  interventionInfo: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    marginTop: "8px",
+  },
+  interventionBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    fontSize: "12px",
+    color: "#333333",
+  },
+  interventionType: {
+    padding: "2px 8px",
+    borderRadius: "12px",
+    color: "white",
+    fontWeight: "500",
+    fontSize: "11px",
+  },
+  targetStudent: {
+    fontSize: "12px",
+    color: "#555555",
+    backgroundColor: "#F5F5F5",
+    padding: "2px 8px",
+    borderRadius: "12px",
+  },
+  whisperBadge: {
+    fontSize: "11px",
+    fontStyle: "italic",
+    color: "#9C27B0",
+    marginTop: "4px",
+  },
+  errorMessage: {
+    marginBottom: "12px",
+    padding: "10px",
+    borderRadius: "4px",
+    backgroundColor: "#FFEBEE",
+    color: "#D32F2F",
+    border: "1px solid #FFCDD2",
+    fontSize: "14px",
+  },
 };
 
 export default EvaluateTab;

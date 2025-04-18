@@ -38,11 +38,12 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
 다음 형식의 JSON으로 응답하세요:
 {
   "intervention_type": "positive" 또는 "guidance" 또는 "individual" 또는 "none",
-  "target_student": null 또는 "2s02" (개인 피드백인 경우만 학생 ID 지정),
+  "target_student": null 또는 실제 학생 ID (예: "2s01", "2s02" 등, 개인 피드백인 경우만 학생 ID 지정),
   "reasoning": "판단 이유를 간략히 설명"
   
 }
 
+⚠️ 중요: "target_student"는 이름이 아닌 반드시 학생 ID를 사용해야 합니다. 예를 들어 "학생30"이나 "30"이 아닌 "2s03"과 같은 형식이어야 합니다.
 ⚠️ JSON 외의 설명은 절대 포함하지 마세요.
 """
 
@@ -67,9 +68,21 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
             should_respond = result["intervention_type"] != "none"
             target = result.get("target_student") if result["intervention_type"] == "individual" else None
             
+            # target이 학생 ID 형식이 아닌 경우 처리
+            if target and not (isinstance(target, str) and target.startswith("2s")):
+                # 메시지에서 해당 이름을 가진 학생의 ID 찾기
+                for msg in recent_messages:
+                    name = msg.get("name", "")
+                    sender_id = msg.get("sender_id", "")
+                    if (name == target or name == f"학생{target}") and sender_id.startswith("2s"):
+                        target = sender_id
+                        print(f"🔄 타겟 학생 이름을 ID로 변환: {name} → {target}")
+                        break
+            
             return {
                 "should_respond": should_respond,
                 "target": target,
+                "target_student": target,
                 "intervention_type": result["intervention_type"],
                 "reasoning": result.get("reasoning", "")
             }

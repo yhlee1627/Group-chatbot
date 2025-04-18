@@ -2,7 +2,8 @@ import datetime
 from supabase_client import (
     save_message_to_db,
     get_room_history,
-    get_student_name
+    get_student_name,
+    save_gpt_intervention
 )
 from gpt_handler import GPTInterventionService
 
@@ -52,7 +53,7 @@ def register_socket_events(sio):
         await sio.emit("current_users", {"participants": participants}, room=sid)
         await sio.emit("user_joined", {"sender_id": sender_id, "name": name}, room=room_id)
 
-    async def emit_message(room_id, sender_id, name, msg, role="user", whisper_to=None, is_gpt_question=False, feedback_type=None):
+    async def emit_message(room_id, sender_id, name, msg, role="user", whisper_to=None, is_gpt_question=False, feedback_type=None, reasoning=""):
         """
         메시지를 클라이언트에 전송하는 유틸리티 함수
         - room_id: 채팅방 ID
@@ -148,7 +149,20 @@ def register_socket_events(sio):
             
             if judgment.get("should_respond", False):
                 intervention_type = judgment.get("intervention_type", "guidance")
-                target = judgment.get("target")
+                target = judgment.get("target_student") or judgment.get("target")
+                
+                # 타겟 스튜던트 ID 확인 및 수정
+                if target and not target.startswith("2s"):
+                    # 이름에서 ID를 찾기 위한 로직
+                    try:
+                        for msg in buffer:
+                            if msg.get("name") == target or msg.get("name") == f"학생{target}":
+                                target = msg.get("sender_id")
+                                break
+                    except Exception as e:
+                        print(f"❌ 타겟 스튜던트 ID 변환 중 오류: {e}")
+                
+                reasoning = judgment.get("reasoning", "")
                 
                 print(f"🤖 GPT 개입 결정: {intervention_type} 유형" + (f" ({target}에게)" if target else ""))
                 
@@ -156,16 +170,52 @@ def register_socket_events(sio):
                 gpt_time = datetime.datetime.utcnow().isoformat()
                 
                 # 응답 저장 (귓속말인 경우 whisper_to 설정)
-                await save_message_to_db(
+                message_response = await save_message_to_db(
                     room_id, "gpt", gpt_text, "assistant", gpt_time, 
-                    whisper_to=target if intervention_type == "individual" else None
+                    whisper_to=target if intervention_type == "individual" else None,
+                    reasoning=reasoning
                 )
+                
+                # GPT 개입 로그 저장 (교사 확인용)
+                if message_response:
+                    try:
+                        # message_id 추출 방식 수정
+                        message_id = None
+                        print(f"✅ 메시지 응답: {message_response}")
+                        
+                        if isinstance(message_response, dict):
+                            message_id = message_response.get("message_id")
+                        elif isinstance(message_response, list) and len(message_response) > 0:
+                            message_id = message_response[0].get("message_id")
+                        
+                        # 유효한 message_id가 없는 경우 개입 로그 저장 시도하지 않음
+                        if not message_id:
+                            print("❌ 메시지 ID를 찾을 수 없어 개입 로그를 저장하지 않습니다.")
+                            
+                        else:
+                            # 수파베이스 클라이언트 대신 db_utils 임포트
+                            from db_utils import save_gpt_intervention as db_save_intervention
+                            intervention_result = await db_save_intervention(
+                                room_id, 
+                                message_id, 
+                                intervention_type, 
+                                target_student=target, 
+                                reasoning=reasoning
+                            )
+                            
+                            if not intervention_result:
+                                print("❌ 개입 로그 저장 결과가 없습니다.")
+                    except Exception as e:
+                        print(f"❌ GPT 개입 로그 저장 실패: {e}")
+                        import traceback
+                        traceback.print_exc()
                 
                 # 응답 전송
                 await emit_message(
                     room_id, "gpt", None, gpt_text, "assistant", 
                     whisper_to=target if intervention_type == "individual" else None,
-                    feedback_type=intervention_type
+                    feedback_type=intervention_type,
+                    reasoning=reasoning
                 )
             else:
                 print("🤖 GPT 판단: 개입 불필요")

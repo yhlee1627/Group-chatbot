@@ -1,5 +1,7 @@
 import os
 import requests
+import aiohttp
+import json
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -15,43 +17,109 @@ HEADERS = {
     "Prefer": "return=minimal"
 }
 
+# ✅ 비동기 Supabase 요청 헬퍼 함수
+async def make_supabase_request(method, url, data=None):
+    """
+    비동기적으로 Supabase API 요청을 수행하는 함수
+    - method: HTTP 메서드 (GET, POST, PUT, DELETE 등)
+    - url: 요청 URL
+    - data: 요청 데이터 (있는 경우)
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            if method == "GET":
+                async with session.get(url, headers=HEADERS) as response:
+                    if response.status in (200, 201, 204):
+                        return await response.json()
+                    else:
+                        error_text = await response.text()
+                        print(f"❌ Supabase API 오류 ({method} {url}): {error_text}")
+                        return None
+            elif method == "POST":
+                async with session.post(url, headers=HEADERS, json=data) as response:
+                    if response.status in (200, 201, 204):
+                        # 응답에 따라 JSON 또는 ID 값 반환
+                        try:
+                            return await response.json()
+                        except:
+                            return {"id": response.headers.get("Location", "").split("/")[-1]}
+                    else:
+                        error_text = await response.text()
+                        print(f"❌ Supabase API 오류 ({method} {url}): {error_text}")
+                        return None
+            elif method == "PUT":
+                async with session.put(url, headers=HEADERS, json=data) as response:
+                    if response.status in (200, 201, 204):
+                        return await response.json()
+                    else:
+                        error_text = await response.text()
+                        print(f"❌ Supabase API 오류 ({method} {url}): {error_text}")
+                        return None
+            elif method == "DELETE":
+                async with session.delete(url, headers=HEADERS) as response:
+                    if response.status in (200, 201, 204):
+                        return await response.json()
+                    else:
+                        error_text = await response.text()
+                        print(f"❌ Supabase API 오류 ({method} {url}): {error_text}")
+                        return None
+    except Exception as e:
+        print(f"❌ Supabase 요청 오류: {e}")
+        return None
+
 # ✅ 메시지 저장
 async def save_message_to_db(room_id, sender_id, message, role="user", timestamp=None, whisper_to=None, reasoning=None):
     """
-    메시지를 Supabase DB에 저장합니다.
-    - room_id: 채팅방 ID
-    - sender_id: 보낸 사람 ID (예: "s01", "gpt")
-    - message: 메시지 내용
-    - role: 역할 ("user", "assistant", "system")
-    - timestamp: 타임스탬프 (없으면 현재 시간)
+    ✅ 메시지를 Supabase의 messages 테이블에 저장하는 함수
+    - room_id: 방 ID (필수)
+    - sender_id: 발신자 ID (필수)
+    - message: 메시지 내용 (필수)
+    - role: 역할 (user/assistant)
+    - timestamp: 메시지 시간 (없으면 현재 시간)
     - whisper_to: 귓속말 대상 (특정 학생에게만 보이는 메시지)
     - reasoning: GPT의 판단 이유 (assistant 역할일 때만 사용)
     """
-    if not timestamp:
-        timestamp = datetime.utcnow().isoformat()
+    try:
+        # 메시지 데이터 구성
+        data = {
+            "room_id": room_id,
+            "sender_id": sender_id,
+            "message": message,
+            "role": role
+        }
 
-    data = {
-        "room_id": room_id,
-        "sender_id": sender_id,
-        "message": message,
-        "role": role,
-        "timestamp": timestamp
-    }
-    
-    # 귓속말 대상이 있는 경우
-    if whisper_to:
-        data["whisper_to"] = whisper_to
+        # timestamp 파라미터가 있으면 사용, 없으면 현재 시간
+        if timestamp:
+            data["timestamp"] = timestamp
+            
+        # whisper_to 값이 있는 경우 추가
+        if whisper_to:
+            data["whisper_to"] = whisper_to
+            
+        # reasoning 값이 있는 경우 추가
+        if reasoning:
+            data["reasoning"] = reasoning
+
+        url = f"{SUPABASE_URL}/rest/v1/messages"
         
-    # reasoning 값이 있는 경우 추가
-    if reasoning:
-        data["reasoning"] = reasoning
-
-    url = f"{SUPABASE_URL}/rest/v1/messages"
-    res = requests.post(url, json=data, headers=HEADERS)
-    if res.status_code != 201:
-        print(f"❌ 메시지 저장 실패: {res.text}")
-        return False
-    return True
+        # Prefer 헤더를 수정하여 삽입된 레코드를 반환하도록 함
+        local_headers = HEADERS.copy()
+        local_headers["Prefer"] = "return=representation"
+        
+        # 직접 aiohttp로 요청 처리
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=local_headers, json=data) as response:
+                if response.status in (200, 201, 204):
+                    response_data = await response.json()
+                    print(f"✅ 메시지 저장 성공: {response_data}")
+                    return response_data[0] if isinstance(response_data, list) else response_data
+                else:
+                    error_text = await response.text()
+                    print(f"❌ Supabase API 오류 (POST {url}): {error_text}")
+                    return None
+    except Exception as e:
+        print(f"❌ 메시지 저장 오류: {e}")
+        return None
 
 # ✅ 대화 기록 불러오기 (화자 포함)
 async def get_room_history(room_id):
@@ -122,3 +190,33 @@ def save_evaluation_result(topic_id, target_student, feedback):
         print("✅ 평가 결과 저장 완료")
     except Exception as e:
         print("❌ 평가 결과 저장 실패:", e)
+
+async def save_gpt_intervention(room_id, message_id, intervention_type, target_student=None, reasoning=None):
+    """
+    ✅ GPT 개입 로그를 gpt_interventions 테이블에 저장하는 함수
+    - room_id: 방 ID (필수)
+    - message_id: 메시지 ID (필수)
+    - intervention_type: 개입 유형 (필수)
+    - target_student: 타겟 학생 ID
+    - reasoning: GPT의 판단 이유
+    """
+    try:
+        data = {
+            "room_id": room_id,
+            "message_id": message_id,
+            "intervention_type": intervention_type,
+        }
+        
+        if target_student:
+            data["target_student"] = target_student
+            
+        if reasoning:
+            data["reasoning"] = reasoning
+            
+        url = f"{SUPABASE_URL}/rest/v1/gpt_interventions"
+        response = await make_supabase_request("POST", url, data)
+        
+        return response
+    except Exception as e:
+        print(f"❌ GPT 개입 로그 저장 오류: {e}")
+        return None

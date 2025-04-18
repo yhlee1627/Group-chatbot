@@ -41,3 +41,14 @@ create table if not exists students (
   name text,
   class_id uuid references classes(class_id)
 );
+
+-- ✅ GPT 개입 로그 (교사 확인용)
+create table if not exists gpt_interventions (
+  intervention_id uuid primary key default gen_random_uuid(),
+  room_id uuid references rooms(room_id),
+  message_id bigint references messages(message_id),
+  intervention_type text not null,
+  target_student text,
+  reasoning text,
+  timestamp timestamptz default now()
+);
