@@ -198,6 +198,21 @@ function ChatRoom() {
                 </div>
               </div>
             </div>
+            
+            <div style={styles.participantsSection}>
+              <h3 style={styles.participantsTitle}>참여자 목록</h3>
+              <div style={styles.participantsContainer}>
+                {participants.map(p => (
+                  <div key={p.student_id} style={styles.participantItem}>
+                    <div style={styles.participantAvatar}>👤</div>
+                    <div style={styles.participantInfo}>
+                      <div style={styles.participantDisplayName}>{p.name || p.student_id}</div>
+                      {p.name && <div style={styles.participantId}>{p.student_id}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -217,6 +232,13 @@ function ChatRoom() {
               <h2 style={styles.title}>{roomTitle}</h2>
               <div style={styles.participantCount}>
                 {participants.length}명 참여 중
+              </div>
+              <div style={styles.participantList}>
+                {participants.map(p => (
+                  <span key={p.student_id} style={styles.participantName}>
+                    {p.name || p.student_id}
+                  </span>
+                )).reduce((prev, curr) => prev.length ? [prev, ', ', curr] : [curr], [])}
               </div>
             </div>
           </div>
@@ -376,6 +398,19 @@ const styles = {
     color: "#8E8E8E",
     marginTop: "2px",
   },
+  participantList: {
+    fontSize: "12px",
+    color: "#8E8E8E",
+    marginTop: "2px",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    maxWidth: "100%",
+  },
+  participantName: {
+    fontSize: "12px",
+    color: "#8E8E8E",
+  },
   leaveButton: {
     backgroundColor: "transparent",
     border: "none",
@@ -444,6 +479,50 @@ const styles = {
     height: "100%",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     zIndex: 1000,
+  },
+  participantsSection: {
+    padding: "20px",
+    borderTop: "1px solid #DBDBDB",
+  },
+  participantsTitle: {
+    fontSize: "16px",
+    fontWeight: "600",
+    marginBottom: "12px",
+    color: "#262626",
+  },
+  participantsContainer: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  participantItem: {
+    display: "flex",
+    alignItems: "center",
+    padding: "10px 0",
+    borderBottom: "1px solid #F0F0F0",
+  },
+  participantAvatar: {
+    width: "32px",
+    height: "32px",
+    borderRadius: "50%",
+    backgroundColor: "#EFEFEF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: "8px",
+    fontSize: "16px",
+  },
+  participantInfo: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  participantDisplayName: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#262626",
+  },
+  participantId: {
+    fontSize: "12px",
+    color: "#8E8E8E",
   },
 };
 

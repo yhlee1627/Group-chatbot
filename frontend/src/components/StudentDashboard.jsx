@@ -154,11 +154,43 @@ function StudentDashboard() {
     navigate("/student-login");
   };
 
+  // 조 번호를 추출하는 함수
+  const getGroupNumber = (room) => {
+    // 방 제목에서 조 번호 추출
+    const titleMatch = room.title && (
+      // "3조 토론방" -> 3 형식 검사
+      room.title.match(/^(\d+)조/) || 
+      // "캡스톤 디자인 프로젝트 - 조 3" -> 3 형식 검사
+      room.title.match(/조\s*(\d+)/)
+    );
+    
+    if (titleMatch) {
+      return parseInt(titleMatch[1], 10);
+    }
+    
+    // room_id에서 조 번호 추출 (예: "r3-1" -> 3)
+    const idMatch = room.room_id && room.room_id.match(/^r(\d+)-/);
+    if (idMatch) {
+      return parseInt(idMatch[1], 10);
+    }
+    
+    return 999; // 조 번호가 없는 경우 맨 뒤로 정렬
+  };
+
   const grouped = {};
   rooms.forEach((room) => {
     const tid = room.topic_id;
     if (!grouped[tid]) grouped[tid] = [];
     grouped[tid].push(room);
+  });
+
+  // 각 토픽 내에서 조 번호 순서로 정렬
+  Object.keys(grouped).forEach(tid => {
+    grouped[tid].sort((a, b) => {
+      const aGroup = getGroupNumber(a);
+      const bGroup = getGroupNumber(b);
+      return aGroup - bGroup;
+    });
   });
 
   return (

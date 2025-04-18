@@ -47,6 +47,13 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
     setIsDeleting(true);
     
     try {
+      // 1. 먼저 채팅방의 메시지를 삭제
+      await fetch(`${backend}/messages?room_id=eq.${roomId}`, {
+        method: "DELETE",
+        headers,
+      });
+      
+      // 2. 그 다음 채팅방 삭제
       const res = await fetch(`${backend}/rooms?room_id=eq.${roomId}`, {
         method: "DELETE",
         headers,

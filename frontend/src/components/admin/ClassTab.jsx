@@ -7,7 +7,7 @@ function ClassTab({ classes, backend, headers, reloadClasses }) {
     password: "1234",
     system_prompt: "토론 도와주는 교사 역할",
     rubric_prompt: "토론 평가하는 교사 역할",
-    studentCount: 30,
+    studentCount: 30
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,8 +27,8 @@ function ClassTab({ classes, backend, headers, reloadClasses }) {
     setIsSubmitting(true);
 
     try {
-      const classNumber = String(classes.length + 1).padStart(2, "0");
-      const fullClassName = `${classNumber}_${name.trim()}`;
+      // 반 이름은 사용자 입력 그대로 사용
+      const fullClassName = name.trim();
 
       const res = await fetch(`${backend}/classes`, {
         method: "POST",
@@ -50,8 +50,15 @@ function ClassTab({ classes, backend, headers, reloadClasses }) {
         return;
       }
 
-      const studentRequests = Array.from({ length: parseInt(studentCount, 10) }, (_, i) => {
+      // 반 번호 가져오기
+      const classNumber = classes.length + 1;
+      
+      // 학생 ID 생성 및 등록
+      const studentPromises = Array.from({ length: parseInt(studentCount, 10) }, (_, i) => {
+        // 학생 ID는 '{반번호}s{학생번호}' 형식 (예: 1s01, 2s02)
+        // 간결하지만 고유한 ID 형식
         const student_id = `${classNumber}s${String(i + 1).padStart(2, "0")}`;
+        
         return fetch(`${backend}/students`, {
           method: "POST",
           headers,
@@ -64,16 +71,23 @@ function ClassTab({ classes, backend, headers, reloadClasses }) {
         });
       });
 
-      await Promise.all(studentRequests);
+      const results = await Promise.allSettled(studentPromises);
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failCount = results.filter(r => r.status === 'rejected').length;
 
-      alert("✅ 반과 학생이 생성되었습니다.");
+      let message = `✅ 반이 생성되었습니다. ${successCount}명의 학생이 추가되었습니다.`;
+      if (failCount > 0) {
+        message += ` ${failCount}명은 ID 충돌로 추가되지 않았습니다.`;
+      }
+
+      alert(message);
       setShowForm(false);
       setNewClass({
         name: "",
         password: "1234",
         system_prompt: "토론 도와주는 교사 역할",
         rubric_prompt: "토론 평가하는 교사 역할",
-        studentCount: 30,
+        studentCount: 30
       });
       reloadClasses();
     } catch (err) {
@@ -88,24 +102,113 @@ function ClassTab({ classes, backend, headers, reloadClasses }) {
     if (!window.confirm("해당 반과 학생을 모두 삭제하시겠습니까?")) return;
 
     try {
-      await fetch(`${backend}/students?class_id=eq.${classId}`, {
-        method: "DELETE",
-        headers,
-      });
+      // 1. 해당 반에 속한 토픽 ID 목록 가져오기
+      const topicsRes = await fetch(`${backend}/topics?class_id=eq.${classId}`, { headers });
+      const topics = await topicsRes.json();
+      const topicIds = topics.map(topic => topic.topic_id);
+      console.log("삭제할 토픽:", topicIds);
+      
+      // 2. 토픽을 통해 연결된 방 ID 가져오기
+      let roomIds = [];
+      
+      if (topicIds.length > 0) {
+        // 개별 토픽 ID로 방 조회 (OR 구문에 문제가 있어 보임)
+        for (const topicId of topicIds) {
+          try {
+            const roomsRes = await fetch(`${backend}/rooms?topic_id=eq.${topicId}`, { headers });
+            if (roomsRes.ok) {
+              const rooms = await roomsRes.json();
+              if (Array.isArray(rooms)) {
+                roomIds = [...roomIds, ...rooms.map(room => room.room_id)];
+              }
+            }
+          } catch (err) {
+            console.error(`토픽 ${topicId}의 방 조회 오류:`, err);
+          }
+        }
+      }
+      
+      console.log("삭제할 채팅방:", roomIds);
+      
+      // 3. 각 방에 연결된 메시지 삭제
+      for (const roomId of roomIds) {
+        try {
+          await fetch(`${backend}/messages?room_id=eq.${roomId}`, {
+            method: "DELETE",
+            headers,
+          });
+        } catch (msgErr) {
+          console.error(`메시지 삭제 오류 (${roomId}):`, msgErr);
+        }
+      }
+      
+      // 4. 방 삭제
+      for (const roomId of roomIds) {
+        try {
+          await fetch(`${backend}/rooms?room_id=eq.${roomId}`, {
+            method: "DELETE",
+            headers,
+          });
+        } catch (roomErr) {
+          console.error(`방 삭제 오류 (${roomId}):`, roomErr);
+        }
+      }
+      
+      // 5. 토픽 삭제
+      for (const topicId of topicIds) {
+        try {
+          await fetch(`${backend}/topics?topic_id=eq.${topicId}`, {
+            method: "DELETE",
+            headers,
+          });
+        } catch (topicErr) {
+          console.error(`토픽 삭제 오류 (${topicId}):`, topicErr);
+        }
+      }
 
-      const res = await fetch(`${backend}/classes?class_id=eq.${classId}`, {
-        method: "DELETE",
-        headers: {
-          ...headers,
-          Prefer: "return=representation",
-        },
-      });
+      // 6. 학생 삭제
+      try {
+        await fetch(`${backend}/students?class_id=eq.${classId}`, {
+          method: "DELETE",
+          headers,
+        });
+      } catch (studentErr) {
+        console.error("학생 삭제 오류:", studentErr);
+      }
+      
+      // 7. chats 테이블의 관련 행 삭제 (오류 메시지에서 발견된 추가 테이블)
+      try {
+        const chatsRes = await fetch(`${backend}/chats?class_id=eq.${classId}`, {
+          method: "DELETE",
+          headers,
+        });
+        if (!chatsRes.ok) {
+          console.error("chats 삭제 실패:", await chatsRes.text());
+        }
+      } catch (chatsErr) {
+        console.error("chats 삭제 오류:", chatsErr);
+      }
 
-      if (res.ok) {
-        alert("✅ 반이 성공적으로 삭제되었습니다.");
-        reloadClasses();
-      } else {
-        console.error("❌ 반 삭제 실패:", await res.text());
+      // 8. 마지막으로 반 삭제
+      try {
+        const res = await fetch(`${backend}/classes?class_id=eq.${classId}`, {
+          method: "DELETE",
+          headers: {
+            ...headers,
+            Prefer: "return=representation",
+          },
+        });
+  
+        if (res.ok) {
+          alert("✅ 반이 성공적으로 삭제되었습니다.");
+          reloadClasses();
+        } else {
+          const errorText = await res.text();
+          console.error("❌ 반 삭제 실패:", errorText);
+          alert("반 삭제에 실패했습니다. 자세한 내용은 콘솔을 확인하세요.");
+        }
+      } catch (classErr) {
+        console.error("반 삭제 오류:", classErr);
         alert("반 삭제에 실패했습니다.");
       }
     } catch (err) {

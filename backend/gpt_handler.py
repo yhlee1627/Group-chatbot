@@ -38,7 +38,7 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
 다음 형식의 JSON으로 응답하세요:
 {
   "intervention_type": "positive" 또는 "guidance" 또는 "individual" 또는 "none",
-  "target_student": null 또는 "s02" (개인 피드백인 경우만 학생 ID 지정),
+  "target_student": null 또는 "2s02" (개인 피드백인 경우만 학생 ID 지정),
   "reasoning": "판단 이유를 간략히 설명"
   
 }
