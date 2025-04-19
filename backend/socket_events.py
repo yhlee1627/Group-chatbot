@@ -63,7 +63,8 @@ def register_socket_events(sio):
         - role: 역할 ("user", "assistant", "system")
         - whisper_to: 귓속말 대상 (특정 학생에게만 보이는 메시지)
         - is_gpt_question: GPT에게 직접 질문한 경우
-        - feedback_type: GPT 피드백 유형 ("positive", "guidance", "individual")
+        - feedback_type: GPT 피드백 유형 ("positive", "guidance", "direct_response", "individual")
+        - reasoning: GPT의 판단 이유나 응답 맥락
         """
         payload = {
             "sender_id": sender_id,
@@ -78,6 +79,9 @@ def register_socket_events(sio):
             
         if feedback_type:
             payload["feedback_type"] = feedback_type
+            
+        if reasoning:
+            payload["reasoning"] = reasoning
             
         if whisper_to:
             payload["whisper"] = True
@@ -112,19 +116,62 @@ def register_socket_events(sio):
             print(f"📣 GPT 질문 요청 by {sender_id}: '{msg}'")
             history = await get_room_history(room_id)
             
-            # GPT 응답 생성 - 'positive'가 아닌 'guidance'를 사용하여 질문에 응답하도록 함
+            # GPT 서비스 초기화
             gpt_service = GPTInterventionService(room_id)
-            gpt_text = await gpt_service.generate_feedback(
-                recent_messages=history[-10:], intervention_type="guidance", target=None
+            
+            # 직접 질문에 대한 응답 생성 함수 사용
+            gpt_text = await gpt_service.generate_direct_response(
+                recent_messages=history[-10:],
+                student_question=msg,
+                student_id=sender_id
             )
             
             gpt_time = datetime.datetime.utcnow().isoformat()
             
-            # 응답 저장
-            await save_message_to_db(room_id, "gpt", gpt_text, "assistant", gpt_time)
+            # 응답 저장 (reasoning 필드에 "직접 질문에 대한 응답" 추가)
+            response = await save_message_to_db(
+                room_id, 
+                "gpt", 
+                gpt_text, 
+                "assistant", 
+                gpt_time, 
+                reasoning="직접 질문에 대한 응답"
+            )
             
-            # 응답 전송 (feedback_type을 "guidance"로 설정)
-            await emit_message(room_id, "gpt", None, gpt_text, "assistant", None, False, "guidance")
+            # 응답 전송 (feedback_type을 "direct_response"로 설정)
+            await emit_message(
+                room_id, 
+                "gpt", 
+                None, 
+                gpt_text, 
+                "assistant", 
+                None, 
+                False, 
+                "direct_response",
+                "직접 질문에 대한 응답"
+            )
+            
+            # 교사 대시보드용 개입 로그 저장
+            if response:
+                try:
+                    # message_id 추출
+                    message_id = None
+                    if isinstance(response, dict):
+                        message_id = response.get("message_id")
+                    elif isinstance(response, list) and len(response) > 0:
+                        message_id = response[0].get("message_id")
+                    
+                    if message_id:
+                        from db_utils import save_gpt_intervention as db_save_intervention
+                        await db_save_intervention(
+                            room_id, 
+                            message_id, 
+                            "direct_response", 
+                            target_student=sender_id, 
+                            reasoning="직접 질문에 대한 응답"
+                        )
+                except Exception as e:
+                    print(f"❌ 직접 질문 개입 로그 저장 실패: {e}")
             
             return
 
