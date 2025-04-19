@@ -14,6 +14,7 @@ function ChatRoom() {
   const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768);
   const [userNames, setUserNames] = useState({});
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
   const studentId = localStorage.getItem("studentId");
@@ -48,12 +49,15 @@ function ChatRoom() {
       return;
     }
 
+    setIsLoading(true);
+
     socket.connect();
     socket.emit("join_room", { room_id: roomId, sender_id: studentId });
     socket.emit("get_messages", { room_id: roomId });
 
     socket.on("message_history", (history) => {
       setMessages(history);
+      setIsLoading(false);
       
       // 메시지 히스토리에서 학생 이름 정보 추출
       const names = {};
@@ -249,7 +253,14 @@ function ChatRoom() {
 
         {/* 메시지 영역 */}
         <div style={styles.messageArea}>
-          <MessageList messages={messages} studentId={studentId} />
+          {isLoading ? (
+            <div style={styles.loadingContainer}>
+              <div style={styles.loadingSpinner}></div>
+              <p style={styles.loadingText}>채팅 내용을 불러오는 중...</p>
+            </div>
+          ) : (
+            <MessageList messages={messages} studentId={studentId} />
+          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -524,6 +535,38 @@ const styles = {
     fontSize: "12px",
     color: "#8E8E8E",
   },
+  loadingContainer: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
+    padding: "20px",
+  },
+  loadingSpinner: {
+    width: "40px",
+    height: "40px",
+    border: "4px solid rgba(0, 149, 246, 0.1)",
+    borderRadius: "50%",
+    borderTop: "4px solid #0095F6",
+    animation: "spin 1s linear infinite",
+    marginBottom: "16px",
+  },
+  loadingText: {
+    fontSize: "14px",
+    color: "#8E8E8E",
+    margin: 0,
+  },
 };
+
+// CSS 애니메이션을 위한 스타일 태그 추가
+const styleTag = document.createElement('style');
+styleTag.innerHTML = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(styleTag);
 
 export default ChatRoom;
