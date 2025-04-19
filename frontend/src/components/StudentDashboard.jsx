@@ -201,6 +201,9 @@ function StudentDashboard() {
           <button onClick={openSidebar} style={styles.profileButton}>
             <span style={styles.profileIcon}>👤</span>
           </button>
+          <button onClick={handleLogout} style={styles.logoutButtonHeader}>
+            로그아웃
+          </button>
         </div>
       </div>
 
@@ -315,10 +318,6 @@ function StudentDashboard() {
                 </button>
               </div>
             )}
-
-            <button onClick={handleLogout} style={styles.logoutButton}>
-              로그아웃
-            </button>
           </div>
         </>
       )}
@@ -584,6 +583,16 @@ const styles = {
     fontSize: "14px",
     cursor: "pointer",
     textAlign: "center",
+  },
+  logoutButtonHeader: {
+    backgroundColor: "transparent",
+    color: "#ED4956",
+    border: "1px solid #ED4956",
+    borderRadius: "4px",
+    padding: "6px 12px",
+    fontSize: "13px",
+    cursor: "pointer",
+    fontWeight: "600",
   },
   // 반응형 스타일
   '@media (max-width: 768px)': {
