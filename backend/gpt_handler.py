@@ -22,10 +22,18 @@ class GPTInterventionService:
         self.room_id = room_id
 
     async def should_respond(self, recent_messages):
+        # 참여한 학생 ID 목록 생성
+        participant_ids = set()
+        for msg in recent_messages:
+            if msg.get('sender_id') and msg['sender_id'].startswith('2s'):
+                participant_ids.add(msg['sender_id'])
+        
+        participant_list = ", ".join(participant_ids)
+        
         chat_text = "\n".join([f"{m.get('name', m['sender_id'])}: {m['message']}" for m in recent_messages])
         system_prompt = await get_system_prompt(self.room_id)
 
-        judgment_instruction = """
+        judgment_instruction = f"""
 이 채팅방은 위와 같은 목적을 가진 공간입니다.
 
 GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 판단하세요:
@@ -35,15 +43,18 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
 상황 3: 특정 학생이 잘 참여하지 못하거나 방향이 다른 말을 하는 경우 → 개인 피드백 (응답 유형: "individual")
 상황 4: 개입이 불필요한 경우 → 개입하지 않음 (응답 유형: "none")
 
+현재 채팅에 참여 중인 학생 ID 목록: {participant_list}
+
 다음 형식의 JSON으로 응답하세요:
-{
+{{
   "intervention_type": "positive" 또는 "guidance" 또는 "individual" 또는 "none",
   "target_student": null 또는 실제 학생 ID (예: "2s01", "2s02" 등, 개인 피드백인 경우만 학생 ID 지정),
   "reasoning": "판단 이유를 간략히 설명"
-  
-}
+}}
 
-⚠️ 중요: "target_student"는 이름이 아닌 반드시 학생 ID를 사용해야 합니다. 예를 들어 "학생30"이나 "30"이 아닌 "2s03"과 같은 형식이어야 합니다.
+⚠️ 매우 중요: "target_student"는 반드시 위 참여자 목록에 있는 학생 ID만 지정해야 합니다.
+⚠️ 학생 이름이나 번호가 아닌 정확한 ID(2s로 시작)를 사용해야 합니다.
+⚠️ 잘못된 ID를 지정하면 메시지가 엉뚱한 학생에게 전송될 수 있습니다.
 ⚠️ JSON 외의 설명은 절대 포함하지 마세요.
 """
 
@@ -68,16 +79,15 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
             should_respond = result["intervention_type"] != "none"
             target = result.get("target_student") if result["intervention_type"] == "individual" else None
             
-            # target이 학생 ID 형식이 아닌 경우 처리
-            if target and not (isinstance(target, str) and target.startswith("2s")):
-                # 메시지에서 해당 이름을 가진 학생의 ID 찾기
-                for msg in recent_messages:
-                    name = msg.get("name", "")
-                    sender_id = msg.get("sender_id", "")
-                    if (name == target or name == f"학생{target}") and sender_id.startswith("2s"):
-                        target = sender_id
-                        print(f"🔄 타겟 학생 이름을 ID로 변환: {name} → {target}")
-                        break
+            # ⚠️ 안전성 검증: target이 참여자 목록에 있는지 확인
+            if target and target not in participant_ids:
+                print(f"⚠️ GPT가 잘못된 학생 ID({target})를 지정했습니다. 참여자 목록: {participant_list}")
+                # 개인 피드백을 전체 피드백으로 변경
+                result["intervention_type"] = "guidance"
+                result["target_student"] = None
+                result["reasoning"] += " (경고: 대상 학생 ID가 참여자 목록에 없어 전체 피드백으로 변경됨)"
+                target = None
+                print("⚠️ 개인 피드백이 전체 피드백으로 변경되었습니다.")
             
             return {
                 "should_respond": should_respond,
@@ -93,6 +103,12 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
     async def generate_feedback(self, recent_messages, intervention_type, target=None):
         system_prompt = await get_system_prompt(self.room_id)
         chat_text = "\n".join([f"{m.get('name', m['sender_id'])}: {m['message']}" for m in recent_messages])
+        
+        # 참여자 목록 생성 (유효한 타겟 확인용)
+        participant_ids = set()
+        for msg in recent_messages:
+            if msg.get('sender_id') and msg['sender_id'].startswith('2s'):
+                participant_ids.add(msg['sender_id'])
         
         feedback_instruction = ""
         
@@ -114,7 +130,21 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
             temperature = 0.7
             
         elif intervention_type == "individual":
-            student_name = get_student_name(target) if target else "학생"
+            # 타겟 학생이 유효한지 재확인
+            if not target or target not in participant_ids:
+                print(f"⚠️ 유효하지 않은 학생 ID로 개인 피드백 생성 시도: {target}")
+                # 대안으로 일반 안내 피드백 제공
+                return "현재 대화에 도움이 필요해 보입니다. 주제에 맞게 집중해서 대화를 이어가면 좋겠습니다."
+                
+            try:
+                student_name = get_student_name(target)
+                if not student_name or student_name == target:
+                    # 이름을 가져오지 못한 경우 ID로 대체
+                    student_name = f"학생({target})"
+            except Exception as e:
+                print(f"❌ 학생 이름 조회 오류: {e}")
+                student_name = f"학생({target})"
+                
             feedback_instruction = f"""
 특정 학생({student_name}, ID: {target})에게 개인적인 피드백이 필요합니다.
 이 학생은 참여가 부족하거나 토론 방향과 다른 대화를 하고 있습니다.
@@ -154,14 +184,28 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
         if not should_respond:
             print("🤖 GPT 판단: 개입 불필요")
             return
+        
+        # 안전성 검증: 타겟 학생이 지정되었는데 실제 참여자 목록에 없는 경우 처리
+        if intervention_type == "individual" and target:
+            # 실제 채팅방 참여자 ID 목록
+            participant_ids = list(sid_to_user.values())
             
+            if target not in participant_ids:
+                print(f"⚠️ 경고: 타겟 학생 ID({target})가 참여자 목록에 없습니다!")
+                print(f"💡 참여자 목록: {participant_ids}")
+                
+                # 에러 로깅 후 개인 피드백을 전체 피드백으로 변경
+                intervention_type = "guidance"
+                target = None
+                reasoning += " (주의: 개인 피드백이 전체 피드백으로 변경됨 - 대상 학생을 찾을 수 없음)"
+        
         print(f"🤖 GPT 판단: {intervention_type} 유형 피드백 제공" + (f" ({target}에게)" if target else ""))
         
         gpt_text = await self.generate_feedback(recent_messages, intervention_type, target)
         gpt_time = datetime.utcnow().isoformat()
 
         # 메시지 DB 저장
-        await save_message_to_db(
+        saved_message = await save_message_to_db(
             self.room_id, 
             "gpt", 
             gpt_text, 
@@ -170,9 +214,12 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
             whisper_to=target if intervention_type == "individual" else None,
             reasoning=reasoning
         )
+        
+        print(f"✅ 메시지 응답: {saved_message}")
 
         if intervention_type == "individual" and target:
             # 개인 피드백 (귓속말)
+            message_sent = False
             for sid, uid in sid_to_user.items():
                 if uid == target:
                     await sio.emit("receive_message", {
@@ -182,10 +229,16 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
                         "timestamp": gpt_time,
                         "target": target,
                         "whisper": True,
+                        "whisper_to": target,  # 일관성을 위해 두 필드 모두 설정
                         "reasoning": reasoning
                     }, to=sid)
                     print(f"✉️ 귓속말 전송: {target}에게")
-                    return
+                    message_sent = True
+                    break
+            
+            # 메시지를 보내지 못했다면 로그에 기록
+            if not message_sent:
+                print(f"⚠️ 경고: {target}에게 귓속말을 보내지 못했습니다. 클라이언트가 연결되어 있지 않을 수 있습니다.")
         else:
             # 전체 피드백
             await sio.emit("receive_message", {

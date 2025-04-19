@@ -122,17 +122,46 @@ async def save_message_to_db(room_id, sender_id, message, role="user", timestamp
         return None
 
 # ✅ 대화 기록 불러오기 (화자 포함)
-async def get_room_history(room_id):
+async def get_room_history(room_id, limit=500, offset=0):
     """
     특정 채팅방의 메시지 기록을 가져옵니다. 
     시간순으로 정렬되어 반환됩니다.
+    limit: 최대 메시지 수 (기본값 500개로 증가)
+    offset: 미사용 (페이지네이션 제거)
     """
-    url = f"{SUPABASE_URL}/rest/v1/messages?room_id=eq.{room_id}&select=message,role,sender_id,timestamp,whisper_to,reasoning&order=timestamp.asc"
-    res = requests.get(url, headers=HEADERS)
-    if res.status_code != 200:
-        print(f"❌ 채팅 기록 조회 실패: {res.text}")
-        return []
-    return res.json()
+    try:
+        # 페이지네이션 없이 한 번에 모든 메시지 가져오기
+        url = f"{SUPABASE_URL}/rest/v1/messages?room_id=eq.{room_id}&select=message_id,message,role,sender_id,timestamp,whisper_to,reasoning&order=timestamp.desc&limit={limit}"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=HEADERS) as response:
+                if response.status != 200:
+                    print(f"❌ 채팅 기록 조회 실패: {await response.text()}")
+                    return {"messages": [], "pagination": {"total": 0, "offset": 0, "limit": limit, "has_more": False}}
+                
+                result = await response.json()
+                # 역순으로 가져온 메시지를 다시 시간순(오래된→최신)으로 정렬
+                sorted_messages = sorted(result, key=lambda x: x.get('timestamp', ''))
+                
+                # 이름 필드 추가 - 별도로 가져와서 추가
+                for msg in sorted_messages:
+                    if msg["sender_id"] != "gpt":
+                        msg["name"] = get_student_name(msg["sender_id"])
+                
+                # 간소화된 페이지네이션 정보 반환 (has_more는 항상 False)
+                return {
+                    "messages": sorted_messages,
+                    "pagination": {
+                        "total": len(sorted_messages),
+                        "offset": 0,
+                        "limit": limit,
+                        "has_more": False
+                    }
+                }
+                
+    except Exception as e:
+        print(f"❌ 대화 기록 로딩 오류: {e}")
+        return {"messages": [], "pagination": {"total": 0, "offset": 0, "limit": limit, "has_more": False}}
 
 # ✅ system_prompt 가져오기
 async def get_system_prompt(room_id):

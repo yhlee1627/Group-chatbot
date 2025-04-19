@@ -114,14 +114,17 @@ def register_socket_events(sio):
         # ✅ GPT 직접 호출 처리 (시나리오 2)
         if is_gpt_question:
             print(f"📣 GPT 질문 요청 by {sender_id}: '{msg}'")
-            history = await get_room_history(room_id)
+            
+            # 최근 메시지 10개만 가져오기 (성능 최적화)
+            history_data = await get_room_history(room_id, limit=10, offset=0)
+            messages = history_data.get("messages", [])
             
             # GPT 서비스 초기화
             gpt_service = GPTInterventionService(room_id)
             
             # 직접 질문에 대한 응답 생성 함수 사용
             gpt_text = await gpt_service.generate_direct_response(
-                recent_messages=history[-10:],
+                recent_messages=messages,
                 student_question=msg,
                 student_id=sender_id
             )
@@ -274,21 +277,46 @@ def register_socket_events(sio):
         
         if not room_id:
             return
-            
-        history = await get_room_history(room_id)
+        
+        # 모든 메시지 한 번에 가져오기 (limit 500으로 증가)
+        history_data = await get_room_history(room_id, limit=500, offset=0)
+        
+        # history_data가 리스트가 아닌 딕셔너리인지 확인
+        if isinstance(history_data, list):
+            # 이전 버전 호환성을 위한 처리
+            messages = history_data
+            pagination = {
+                "total": len(messages),
+                "offset": 0,
+                "limit": 500,
+                "has_more": False
+            }
+        else:
+            # 새로운 형식 (딕셔너리)
+            messages = history_data.get("messages", [])
+            pagination = history_data.get("pagination", {})
         
         # 귓속말 필터링: 본인에게 온 귓속말만 표시
-        filtered_history = []
-        for msg in history:
+        filtered_messages = []
+        for msg in messages:
             # 귓속말이 아니거나 본인에게 온 귓속말인 경우만 표시
             if "whisper_to" not in msg or not msg["whisper_to"] or msg["whisper_to"] == sender_id:
                 if msg["sender_id"] != "gpt":
-                    msg["name"] = get_student_name(msg["sender_id"])
+                    # 이름이 없는 경우에만 조회 (성능 최적화)
+                    if "name" not in msg or not msg["name"]:
+                        msg["name"] = get_student_name(msg["sender_id"])
                     
                 # 클라이언트에 whisper 플래그 추가
                 if "whisper_to" in msg and msg["whisper_to"]:
                     msg["whisper"] = True
+                    msg["target"] = msg["whisper_to"]  # 호환성을 위해 target 필드도 추가
                     
-                filtered_history.append(msg)
+                filtered_messages.append(msg)
+        
+        # 전체 메시지와 페이지네이션 정보를 함께 반환
+        response = {
+            "messages": filtered_messages,
+            "pagination": pagination
+        }
                 
-        await sio.emit("message_history", filtered_history, room=sid)
+        await sio.emit("message_history", response, room=sid)

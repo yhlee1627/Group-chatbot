@@ -22,10 +22,29 @@ function MessageList({ messages, studentId, isAdmin = false }) {
         }
 
         const isGPT = msg.sender_id === "gpt";
-        const isMyMessage = msg.sender_id === studentId;
-        const isWhisper = isGPT && msg.target && msg.target === studentId;
-        const isPublicGpt = isGPT && !msg.target;
-        const isGptToOthers = isGPT && msg.target && msg.target !== studentId;
+        const isMyMessage = msg.isFromMe || msg.sender_id === studentId;
+        
+        // 귓속말 확인 - whisper_to 또는 whisper+target 조합 확인
+        // 모든 방식의 귓속말을 다 확인 - 백엔드가 여러 형태로 보낼 수 있음
+        const isWhisper = isGPT && (
+          msg.whisper_to === studentId || 
+          (msg.whisper === true && msg.target === studentId) || 
+          (msg.target === studentId && !msg.whisper_to && !msg.whisper)
+        );
+        
+        // 개발자 디버깅: 모든 필드 콘솔에 표시
+        if (isGPT) {
+          console.log('🔍 메시지 디버깅:', {
+            whisper_to: msg.whisper_to, 
+            target: msg.target,
+            whisper: msg.whisper,
+            isWhisper: isWhisper,
+            studentId: studentId
+          });
+        }
+        
+        const isPublicGpt = isGPT && !msg.target && !msg.whisper_to && !msg.whisper;
+        const isGptToOthers = isGPT && !isWhisper && !isPublicGpt;
         const showAdminLog = isAdmin && isGptToOthers;
 
         const senderName = msg.name ?? msg.sender_id;
@@ -75,7 +94,15 @@ function MessageList({ messages, studentId, isAdmin = false }) {
 
               {/* 🤫 GPT 귓속말 라벨 */}
               {isWhisper && (
-                <div style={styles.whisperLabel}>GPT가 너에게만 하는 말이야</div>
+                <div style={{
+                  ...styles.whisperLabel,
+                  padding: "4px 8px",
+                  backgroundColor: "#FFF3D9",
+                  borderRadius: "4px",
+                  display: "inline-block"
+                }}>
+                  🤫 GPT가 {studentId}님에게만 보내는 메시지
+                </div>
               )}
 
               {/* 💬 GPT 질문 표시 */}

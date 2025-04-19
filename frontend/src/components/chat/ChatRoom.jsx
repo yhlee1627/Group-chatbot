@@ -5,6 +5,39 @@ import MessageList from "./MessageList";
 import InputBox from "./InputBox";
 import { motion } from "framer-motion";
 
+// 메시지 데이터 정규화 헬퍼 함수 - 더 견고한 버전
+const normalizeMessage = (msg, currentStudentId) => {
+  // 기존 메시지 객체 복사
+  const normalizedMsg = { ...msg };
+  
+  // GPT 메시지는 모두 표시하도록 특별 처리
+  const isGPT = normalizedMsg.sender_id === "gpt";
+  
+  // 귓속말 관련 필드 정규화
+  // 백엔드가 whisper_to 필드를 사용할 수도 있고, target+whisper 조합을 사용할 수도 있음
+  if (normalizedMsg.whisper_to) {
+    normalizedMsg.whisper = true;
+    normalizedMsg.target = normalizedMsg.whisper_to;
+  }
+  
+  // isWhisperToMe 속성 추가 (GPT 메시지는 항상 true로 설정하여 모두 표시)
+  normalizedMsg.isWhisperToMe = isGPT || 
+    (normalizedMsg.whisper === true && normalizedMsg.target === currentStudentId) ||
+    (normalizedMsg.whisper_to === currentStudentId);
+  
+  // isFromMe 속성 추가
+  normalizedMsg.isFromMe = normalizedMsg.sender_id === currentStudentId;
+  
+  // isPublic 속성 추가 (GPT 메시지는 항상 공개 메시지로 간주)
+  normalizedMsg.isPublic = isGPT || 
+    (!normalizedMsg.target && !normalizedMsg.whisper_to && !normalizedMsg.whisper);
+  
+  // 메시지가 항상 표시되도록 보장하는 플래그 (디버깅용)
+  normalizedMsg.showForDebug = isGPT; 
+  
+  return normalizedMsg;
+};
+
 function ChatRoom() {
   const [messages, setMessages] = useState([]);
   const [participants, setParticipants] = useState([]);
@@ -21,6 +54,7 @@ function ChatRoom() {
   const roomId = localStorage.getItem("roomId");
 
   const messagesEndRef = useRef(null);
+  const messageAreaRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,28 +89,75 @@ function ChatRoom() {
     socket.emit("join_room", { room_id: roomId, sender_id: studentId });
     socket.emit("get_messages", { room_id: roomId });
 
-    socket.on("message_history", (history) => {
-      setMessages(history);
+    // 메시지 정규화 전 후 상태 전체 로깅
+    const logMessageStructure = (prefix, msg) => {
+      console.log(`${prefix} 메시지 구조:`, {
+        sender_id: msg.sender_id,
+        target: msg.target,
+        whisper_to: msg.whisper_to,
+        whisper: msg.whisper,
+        isPublic: msg.isPublic,
+        isWhisperToMe: msg.isWhisperToMe,
+        isFromMe: msg.isFromMe,
+        myStudentId: studentId
+      });
+    };
+
+    socket.on("receive_message", (msg) => {
+      console.log("📩 원본 메시지 수신:", JSON.stringify(msg, null, 2));
+      
+      // 디버깅 - 필터링 전 모든 메시지 속성 확인
+      logMessageStructure("필터링 전", msg);
+      
+      // GPT 메시지는 무조건 표시 (아주 중요: 귓속말 기능 디버깅 위해)
+      const isGPT = msg.sender_id === "gpt";
+      
+      // 메시지 데이터 정규화
+      const normalizedMsg = normalizeMessage(msg, studentId);
+      
+      // 정규화 후 메시지 상태 확인
+      logMessageStructure("정규화 후", normalizedMsg);
+      
+      // GPT 메시지거나 일반적인 필터링 조건을 만족하는 메시지만 표시
+      if (isGPT || normalizedMsg.isPublic || normalizedMsg.isWhisperToMe || normalizedMsg.isFromMe) {
+        console.log("✅ 메시지 표시 결정:", normalizedMsg);
+        // 메시지 추가
+        setMessages((prev) => [...prev, normalizedMsg]);
+        
+        // 메시지에서 이름 정보 저장
+        if (normalizedMsg.sender_id && normalizedMsg.name) {
+          setUserNames(prev => ({ ...prev, [normalizedMsg.sender_id]: normalizedMsg.name }));
+        }
+      } else {
+        console.log(`🚫 나(${studentId})에게 온 메시지가 아님, 무시함`);
+      }
+    });
+
+    socket.on("message_history", (data) => {
+      // 새로운 API 응답 형식 처리 (메시지 배열 + 페이지네이션 정보)
+      const messages = data.messages || [];
+      
+      console.log("📚 메시지 히스토리 수신:", {
+        count: messages.length
+      });
+      
+      // 메시지 히스토리 정규화
+      const normalizedMessages = messages.map(msg => normalizeMessage(msg, studentId));
+      
+      setMessages(normalizedMessages);
       setIsLoading(false);
       
       // 메시지 히스토리에서 학생 이름 정보 추출
       const names = {};
-      history.forEach(msg => {
+      normalizedMessages.forEach(msg => {
         if (msg.sender_id && msg.name) {
           names[msg.sender_id] = msg.name;
         }
       });
       setUserNames(prev => ({ ...prev, ...names }));
-    });
-
-    socket.on("receive_message", (msg) => {
-      if (msg.target && msg.target !== studentId) return;
-      setMessages((prev) => [...prev, msg]);
       
-      // 메시지에서 이름 정보 저장
-      if (msg.sender_id && msg.name) {
-        setUserNames(prev => ({ ...prev, [msg.sender_id]: msg.name }));
-      }
+      // 자동 스크롤 다운 실행
+      setTimeout(scrollToBottom, 100);
     });
 
     socket.on("current_users", ({ participants }) => {
@@ -252,7 +333,10 @@ function ChatRoom() {
         </div>
 
         {/* 메시지 영역 */}
-        <div style={styles.messageArea}>
+        <div 
+          style={styles.messageArea} 
+          ref={messageAreaRef}
+        >
           {isLoading ? (
             <div style={styles.loadingContainer}>
               <div style={styles.loadingSpinner}></div>
