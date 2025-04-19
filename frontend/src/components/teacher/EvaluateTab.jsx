@@ -11,6 +11,7 @@ function EvaluateTab({ backend, headers, classId }) {
   const [evaluationMap, setEvaluationMap] = useState({});
   const [isEvaluatingMap, setIsEvaluatingMap] = useState({});
   const [expandedTopics, setExpandedTopics] = useState({});
+  const [studentsMap, setStudentsMap] = useState({});
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -95,6 +96,50 @@ function EvaluateTab({ backend, headers, classId }) {
         ...messagesMap,
         [room.room_id]: data
       });
+      
+      // 학생 ID 추출
+      const studentIds = new Set();
+      data.forEach(msg => {
+        if (msg.sender_id && msg.sender_id !== "gpt") {
+          studentIds.add(msg.sender_id);
+        }
+      });
+      
+      // 학생 정보 가져오기 (이미 있는 ID는 제외)
+      if (studentIds.size > 0) {
+        const idsToFetch = Array.from(studentIds).filter(id => !studentsMap[id]);
+        
+        if (idsToFetch.length > 0) {
+          try {
+            const studentsUrl = `${supabaseUrl}/rest/v1/students?student_id=in.(${idsToFetch.join(',')})`;
+            const studentsRes = await fetch(studentsUrl, {
+              headers: {
+                apikey: supabaseKey,
+                Authorization: `Bearer ${supabaseKey}`,
+              },
+            });
+            
+            const studentsData = await studentsRes.json();
+            const newStudentsMap = { ...studentsMap };
+            
+            studentsData.forEach(student => {
+              newStudentsMap[student.student_id] = student.name || `학생 ${student.student_id}`;
+            });
+            
+            // 이름이 없는 학생은 기본값 설정
+            idsToFetch.forEach(id => {
+              if (!newStudentsMap[id]) {
+                newStudentsMap[id] = `학생 ${id}`;
+              }
+            });
+            
+            setStudentsMap(newStudentsMap);
+            console.log("학생 정보 로드 완료:", newStudentsMap);
+          } catch (error) {
+            console.error("학생 정보 로드 실패:", error);
+          }
+        }
+      }
     } catch (error) {
       console.error("메시지 가져오기 실패:", error);
     }
@@ -283,6 +328,13 @@ function EvaluateTab({ backend, headers, classId }) {
     return [...new Set(messages.map((m) => m.sender_id))];
   };
 
+  // 학생 ID로 이름 가져오기
+  const getStudentName = (id) => {
+    if (!id) return "알 수 없음";
+    if (id === "gpt") return "GPT 어시스턴트";
+    return studentsMap[id] || id; // 학생 이름 또는 ID 반환
+  };
+
   return (
     <div style={styles.container}>
       <h3 style={styles.title}>채팅방 평가</h3>
@@ -372,6 +424,7 @@ function EvaluateTab({ backend, headers, classId }) {
                         isEvaluating={isEvaluatingMap[selectedRooms[topic.topic_id]] || false}
                         evaluateWithGPT={() => evaluateWithGPT(selectedRooms[topic.topic_id], topic.topic_id)}
                         senders={getSenders(selectedRooms[topic.topic_id])}
+                        formatStudentName={getStudentName}
                       />
                     )}
                   </div>
@@ -396,9 +449,28 @@ function RoomDetail({
   evaluation,
   isEvaluating,
   evaluateWithGPT,
-  senders
+  senders,
+  formatStudentName
 }) {
   if (!room) return null;
+  
+  // 학생 이름 가져오기 함수 - props에서 받은 함수가 없으면 내부 구현 사용
+  const getStudentName = (id) => {
+    // 상위 컴포넌트에서 함수를 받았으면 사용
+    if (formatStudentName) {
+      return formatStudentName(id);
+    }
+    
+    // 기본 구현
+    if (!id) return "알 수 없음";
+    if (id === "gpt") return "GPT 어시스턴트";
+    
+    // 학생 ID에서 번호 추출
+    const match = id.match(/\d+$/);
+    if (match) return `학생 ${match[0]}`;
+    
+    return id;
+  };
   
   // 메시지 ID별로 개입 로그 매핑
   const interventionsByMessageId = {};
@@ -430,7 +502,7 @@ function RoomDetail({
           <option value="">전체 보기</option>
           {senders.map((s) => (
             <option key={s} value={s}>
-              {s}
+              {getStudentName(s)}
             </option>
           ))}
         </select>
@@ -458,7 +530,9 @@ function RoomDetail({
                 
                 return (
                   <div key={i} style={isGptMessage ? styles.gptMessageItem : styles.messageItem}>
-                    <div style={styles.messageSender}>{message.sender_id || "unknown"}</div>
+                    <div style={styles.messageSender}>
+                      {getStudentName(message.sender_id)}
+                    </div>
                     
                     {/* GPT 메시지의 경우 판단 근거와 개입 유형 표시 */}
                     {isGptMessage && message.reasoning && (
@@ -485,7 +559,7 @@ function RoomDetail({
                         
                         {intervention.target_student && (
                           <div style={styles.targetStudent}>
-                            대상 학생: {intervention.target_student}
+                            대상 학생: {getStudentName(intervention.target_student)}
                           </div>
                         )}
                       </div>
@@ -494,7 +568,7 @@ function RoomDetail({
                     {/* 귓속말 표시 */}
                     {message.whisper_to && (
                       <div style={styles.whisperBadge}>
-                        귓속말: {message.whisper_to}
+                        귓속말: {getStudentName(message.whisper_to)}
                       </div>
                     )}
                   </div>
@@ -526,7 +600,7 @@ function RoomDetail({
             <option value="">전체 학생</option>
             {senders.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {getStudentName(s)}
               </option>
             ))}
           </select>
@@ -538,7 +612,7 @@ function RoomDetail({
           >
             {isEvaluating
               ? "평가 중..."
-              : `GPT로 평가하기 ${targetStudent ? `(${targetStudent})` : ''}`}
+              : `GPT로 평가하기 ${targetStudent ? `(${getStudentName(targetStudent)})` : ''}`}
           </button>
         </div>
 
