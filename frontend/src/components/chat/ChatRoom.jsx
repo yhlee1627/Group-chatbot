@@ -5,6 +5,7 @@ import MessageList from "./MessageList";
 import InputBox from "./InputBox";
 import { motion } from "framer-motion";
 import theme from "../../styles/theme";
+import { formatTimestamp, formatDatetime } from "./chatUtils";
 
 // 메시지 데이터 정규화 헬퍼 함수 - 더 견고한 버전
 const normalizeMessage = (msg, currentStudentId) => {

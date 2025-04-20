@@ -310,6 +310,8 @@ const styles = {
     fontFamily: "'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     backgroundColor: theme.MAIN_LIGHT,
     minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
   },
   header: {
     display: "flex",
@@ -557,6 +559,8 @@ const styles = {
     boxShadow: theme.SHADOW_SM,
     minHeight: "400px",
     border: "1px solid rgba(130, 124, 209, 0.1)",
+    flexGrow: 1,
+    overflowY: "auto",
   },
 };
 

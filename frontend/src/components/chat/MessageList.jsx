@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import styles from "./chatStyles";
 import { getUserColor } from "./chatUtils";
 import theme from "../../styles/theme";
+import { formatTimestamp } from "./chatUtils";
 
 function MessageList({ messages, studentId, isAdmin = false }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -62,9 +63,7 @@ function MessageList({ messages, studentId, isAdmin = false }) {
         const senderName = msg.name ?? msg.sender_id;
         const sender = isGPT ? "GPT" : `${senderName}`;
 
-        const time = msg.timestamp
-          ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-          : "";
+        const time = msg.timestamp ? formatTimestamp(msg.timestamp) : "";
 
         const containerStyle = {
           ...styles.messageContainer,

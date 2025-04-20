@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import SectionTitle from "./shared/SectionTitle";
 import ClassDropdown from "./shared/ClassDropdown";
 import theme from "../../styles/theme";
+import { formatDate, formatTimestamp, formatDatetime } from "../chat/chatUtils";
 
 function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassId, topics }) {
   const [rooms, setRooms] = useState([]);
@@ -141,34 +142,16 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
     setExpandedRoom(expandedRoom === roomId ? null : roomId);
   };
   
-  const formatDate = (dateString) => {
-    if (!dateString) return '날짜 없음';
-    
-    const date = new Date(dateString);
-    
-    // 날짜 형식: YYYY-MM-DD HH:MM
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  // 날짜 형식화 함수
+  const formatCreatedAt = (dateString) => {
+    if (!dateString) return "-";
+    return formatDatetime(dateString);
   };
-  
-  // 간단한 날짜 표시 (목록용)
-  const formatShortDate = (dateString) => {
-    if (!dateString) return '날짜 없음';
-    
-    const date = new Date(dateString);
-    
-    // 날짜 형식: MM-DD HH:MM
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    
-    return `${month}-${day} ${hours}:${minutes}`;
+
+  // 종료 날짜 형식화 함수
+  const formatClosedAt = (dateString) => {
+    if (!dateString) return "-";
+    return formatDatetime(dateString);
   };
 
   // 주제별 그룹화된 채팅방 데이터
@@ -223,7 +206,7 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
                               </span>
                             )}
                             <span style={styles.createdAt}>
-                              {formatShortDate(room.created_at)}
+                              {formatCreatedAt(room.created_at)}
                             </span>
                           </div>
                         </div>
@@ -240,7 +223,7 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
                           </div>
                           <div style={styles.detailItem}>
                             <span style={styles.detailLabel}>생성일:</span>
-                            <span style={styles.detailValue}>{formatDate(room.created_at)}</span>
+                            <span style={styles.detailValue}>{formatCreatedAt(room.created_at)}</span>
                           </div>
                           <button 
                             onClick={() => deleteRoom(room.room_id)} 

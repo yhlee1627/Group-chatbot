@@ -11,14 +11,24 @@ export const getUserColor = (sender_id) => {
   return theme.NEUTRAL_TEXT;
 };
 
-// 타임스탬프를 특정 형식으로 포맷팅
+// UTC 시간을 KST로 변환하는 헬퍼 함수
+const convertToKST = (timestamp) => {
+  if (!timestamp) return null;
+  
+  const date = new Date(timestamp);
+  // UTC 시간을 KST로 변환 (UTC+9)
+  return new Date(date.getTime() + 9 * 60 * 60 * 1000);
+};
+
+// 타임스탬프를 특정 형식으로 포맷팅 (시:분)
 export const formatTimestamp = (timestamp) => {
   if (!timestamp) return "";
   
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString([], { 
+  const kstDate = convertToKST(timestamp);
+  return kstDate.toLocaleTimeString('ko-KR', { 
     hour: "2-digit", 
-    minute: "2-digit"
+    minute: "2-digit",
+    hour12: false // 24시간제 사용
   });
 };
 
@@ -26,8 +36,8 @@ export const formatTimestamp = (timestamp) => {
 export const formatDate = (timestamp) => {
   if (!timestamp) return "";
   
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('ko-KR', {
+  const kstDate = convertToKST(timestamp);
+  return kstDate.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
@@ -38,8 +48,8 @@ export const formatDate = (timestamp) => {
 export const formatShortDate = (timestamp) => {
   if (!timestamp) return "";
   
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('ko-KR', {
+  const kstDate = convertToKST(timestamp);
+  return kstDate.toLocaleDateString('ko-KR', {
     month: '2-digit',
     day: '2-digit'
   }).replace(/\. /g, '-').replace('.', '');
@@ -49,9 +59,17 @@ export const formatShortDate = (timestamp) => {
 export const formatDatetime = (timestamp) => {
   if (!timestamp) return "";
   
-  const date = new Date(timestamp);
-  const dateStr = formatShortDate(timestamp);
-  const timeStr = formatTimestamp(timestamp);
+  const kstDate = convertToKST(timestamp);
+  const dateStr = kstDate.toLocaleDateString('ko-KR', {
+    month: '2-digit',
+    day: '2-digit'
+  }).replace(/\. /g, '-').replace('.', '');
+  
+  const timeStr = kstDate.toLocaleTimeString('ko-KR', { 
+    hour: "2-digit", 
+    minute: "2-digit",
+    hour12: false
+  });
   
   return `${dateStr} ${timeStr}`;
 };

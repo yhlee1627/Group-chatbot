@@ -415,7 +415,7 @@ const styles = {
     maxWidth: '1440px',
     margin: '0 auto',
     padding: '20px',
-    height: '100vh',
+    minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: theme.MAIN_LIGHT,
@@ -502,6 +502,9 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "32px",
+    flexGrow: 1,
+    overflowY: "auto",
+    paddingBottom: "20px",
   },
   // 모바일 콘텐츠
   mobileContent: {
