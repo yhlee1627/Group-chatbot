@@ -110,7 +110,7 @@ function StudentDashboard() {
     }
   };
 
-  const openSidebar = async () => {
+  const openProfileModal = async () => {
     try {
       const res = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/students?student_id=eq.${encodeURIComponent(studentId)}`,
@@ -210,44 +210,55 @@ function StudentDashboard() {
       ...styles.container,
       ...(isMobile && styles.mobileContainer)
     }}>
-      <div style={{
-        ...styles.header,
-        ...(isMobile && styles.mobileHeader)
-      }}>
-        <h2 style={{
-          ...styles.title,
-          ...(isMobile && styles.mobileTitle)
-        }}>
+      <header 
+        style={{ 
+          ...styles.header, 
+          ...(isMobile ? styles.mobileHeader : {}) 
+        }}
+      >
+        <div style={styles.logoContainer}>
           <img 
             src="/images/berry-icon.png" 
-            alt="BerryChat" 
-            style={{
-              ...styles.headerLogo,
-              ...(isMobile && styles.mobileHeaderLogo)
-            }}
+            alt="Berry Chat" 
+            style={styles.logo}
             onError={(e) => {
-              e.target.style.display = 'none';
-              document.getElementById('headerFallbackLogo').style.display = 'inline';
+              e.target.onerror = null;
+              e.target.innerHTML = '🫐';
             }}
           />
-          <span id="headerFallbackLogo" style={{display: 'none', marginRight: '8px'}}>🫐</span>
-          채팅방
-        </h2>
+          <h1 style={styles.title}>Berry Chat</h1>
+        </div>
         <div style={styles.buttonGroup}>
-          <button onClick={openSidebar} style={styles.profileButton}>
+          <button
+            onClick={openProfileModal}
+            style={styles.iconButton}
+            title="설정"
+            onMouseOver={(e) => {
+              e.currentTarget.style.color = theme.MAIN_COLOR;
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.color = theme.NEUTRAL_TEXT;
+            }}
+          >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10 13.75C12.0711 13.75 13.75 12.0711 13.75 10C13.75 7.92893 12.0711 6.25 10 6.25C7.92893 6.25 6.25 7.92893 6.25 10C6.25 12.0711 7.92893 13.75 10 13.75Z" stroke={theme.MAIN_COLOR} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M8.14874 4.10377L8.49997 2.5H11.5L11.8512 4.10377C12.0629 4.75228 12.5798 5.24326 13.1771 5.43907C13.7745 5.63489 14.4242 5.51634 14.9167 5.125L16.25 4.16667L18.0833 7.5L16.9083 8.33333C16.3982 8.68041 16.0911 9.27605 16.0911 9.9096C16.0911 10.5431 16.3982 11.1388 16.9083 11.4858L18.0833 12.5L16.25 15.8333L14.9167 14.875C14.4242 14.4837 13.7745 14.3651 13.1771 14.5609C12.5798 14.7567 12.0629 15.2477 11.8512 15.8962L11.5 17.5H8.49997L8.14874 15.8962C7.93711 15.2477 7.42022 14.7567 6.82287 14.5609C6.22552 14.3651 5.57575 14.4837 5.08331 14.875L3.74997 15.8333L1.91664 12.5L3.09164 11.4858C3.60172 11.1388 3.90884 10.5431 3.90884 9.9096C3.90884 9.27605 3.60172 8.68041 3.09164 8.33333L1.91664 7.5L3.74997 4.16667L5.08331 5.125C5.57575 5.51634 6.22552 5.63489 6.82287 5.43907C7.42022 5.24326 7.93711 4.75228 8.14874 4.10377Z" stroke={theme.MAIN_COLOR} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M10 13.75C12.0711 13.75 13.75 12.0711 13.75 10C13.75 7.92893 12.0711 6.25 10 6.25C7.92893 6.25 6.25 7.92893 6.25 10C6.25 12.0711 7.92893 13.75 10 13.75Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M8.14874 4.10377L8.49997 2.5H11.5L11.8512 4.10377C12.0629 4.75228 12.5798 5.24326 13.1771 5.43907C13.7745 5.63489 14.4242 5.51634 14.9167 5.125L16.25 4.16667L18.0833 7.5L16.9083 8.33333C16.3982 8.68041 16.0911 9.27605 16.0911 9.9096C16.0911 10.5431 16.3982 11.1388 16.9083 11.4858L18.0833 12.5L16.25 15.8333L14.9167 14.875C14.4242 14.4837 13.7745 14.3651 13.1771 14.5609C12.5798 14.7567 12.0629 15.2477 11.8512 15.8962L11.5 17.5H8.49997L8.14874 15.8962C7.93711 15.2477 7.42022 14.7567 6.82287 14.5609C6.22552 14.3651 5.57575 14.4837 5.08331 14.875L3.74997 15.8333L1.91664 12.5L3.09164 11.4858C3.60172 11.1388 3.90884 10.5431 3.90884 9.9096C3.90884 9.27605 3.60172 8.68041 3.09164 8.33333L1.91664 7.5L3.74997 4.16667L5.08331 5.125C5.57575 5.51634 6.22552 5.63489 6.82287 5.43907C7.42022 5.24326 7.93711 4.75228 8.14874 4.10377Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button onClick={handleLogout} style={{
-            ...styles.logoutButtonHeader,
-            ...(isMobile && { fontSize: '12px', padding: '8px 12px' })
-          }}>
+          <button
+            onClick={handleLogout}
+            style={styles.logoutButton}
+            onMouseOver={(e) => {
+              e.currentTarget.style.color = theme.MAIN_COLOR;
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.color = theme.NEUTRAL_TEXT;
+            }}
+          >
             로그아웃
           </button>
         </div>
-      </div>
+      </header>
 
       <div style={{
         ...styles.content,
@@ -401,32 +412,39 @@ function StudentDashboard() {
 // 블루베리 테마 스타일 정의
 const styles = {
   container: {
-    maxWidth: "935px",
-    margin: "0 auto",
-    padding: "20px",
-    fontFamily: "'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    color: theme.NEUTRAL_TEXT,
+    maxWidth: '1440px',
+    margin: '0 auto',
+    padding: '20px',
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
     backgroundColor: theme.MAIN_LIGHT,
-    minHeight: "100vh",
-    boxSizing: "border-box",
   },
-  // 모바일 컨테이너
   mobileContainer: {
-    padding: "12px",
-    maxWidth: "100%",
+    padding: '10px',
   },
   header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "16px 0",
-    borderBottom: `1px solid ${theme.MAIN_COLOR}`,
-    marginBottom: "24px",
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '15px 20px',
+    backgroundColor: 'white',
+    borderRadius: theme.ROUNDED_LG,
+    boxShadow: theme.SHADOW_SM,
+    marginBottom: '20px',
   },
-  // 모바일 헤더
+  logoContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  logo: {
+    width: '32px',
+    height: '32px',
+    objectFit: 'contain',
+  },
   mobileHeader: {
-    padding: "12px 0",
-    marginBottom: "16px",
+    padding: '10px',
   },
   title: {
     fontSize: "24px",
@@ -454,12 +472,31 @@ const styles = {
   },
   buttonGroup: {
     display: "flex",
-    gap: "16px",
     alignItems: "center",
+    gap: "16px",
   },
-  // 모바일 버튼 그룹
-  mobileButtonGroup: {
-    gap: "8px",
+  iconButton: {
+    backgroundColor: "transparent",
+    border: "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    color: theme.NEUTRAL_TEXT,
+    padding: "8px",
+    borderRadius: "6px",
+    transition: "all 0.2s ease",
+  },
+  logoutButton: {
+    backgroundColor: "transparent",
+    color: theme.NEUTRAL_TEXT,
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_MD,
+    padding: "8px 16px",
+    fontSize: "14px",
+    fontWeight: "500",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
   },
   content: {
     display: "flex",

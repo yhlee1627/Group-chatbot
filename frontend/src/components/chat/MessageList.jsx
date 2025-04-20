@@ -82,12 +82,24 @@ function MessageList({ messages, studentId, isAdmin = false }) {
         const bubbleStyle = {
           ...styles.bubbleBase,
           ...(isMyMessage
-            ? styles.bubbleMyMessage
+            ? {
+                ...styles.bubbleMyMessage,
+                borderBottomRightRadius: "4px" // 내 메시지는 오른쪽 하단만 각진 모서리
+              }
             : isGPT
             ? isWhisper
-              ? styles.bubbleGptWhisper
-              : styles.bubbleGptPublic
-            : styles.bubbleOther),
+              ? {
+                  ...styles.bubbleGptWhisper,
+                  borderBottomLeftRadius: "4px" // GPT 귓속말은 왼쪽 하단만 각진 모서리
+                }
+              : {
+                  ...styles.bubbleGptPublic,
+                  borderBottomLeftRadius: "4px" // GPT 일반 메시지는 왼쪽 하단만 각진 모서리
+                }
+            : {
+                ...styles.bubbleOther,
+                borderBottomLeftRadius: "4px" // 다른 사람 메시지는 왼쪽 하단만 각진 모서리
+              }),
         };
 
         // 모바일에서 말풍선 너비 조정
@@ -95,7 +107,10 @@ function MessageList({ messages, studentId, isAdmin = false }) {
           Object.assign(bubbleStyle, {
             ...styles.mobileBubble,
             maxWidth: isMyMessage ? "80%" : "75%", // 모바일에서 말풍선 너비 제한
-            padding: "8px 12px" // 패딩 조정
+            padding: "8px 12px", // 패딩 조정
+            borderRadius: "16px", // 기본 모서리 둥글기
+            // 메시지 유형에 따라 한쪽 모서리만 각지게 유지
+            ...(isMyMessage ? { borderBottomRightRadius: "4px" } : { borderBottomLeftRadius: "4px" })
           });
         }
 

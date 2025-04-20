@@ -465,8 +465,9 @@ function ChatRoom() {
             ...styles.messageArea,
             ...(isMobile && { 
               flex: 1,
-              paddingBottom: '70px', // 모바일에서 입력창 높이만큼 여유 공간 추가
-              overflowY: 'auto'
+              paddingBottom: '100px', // 모바일에서 입력창 높이만큼 여유 공간 추가
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch' // iOS 스크롤 성능 향상
             })
           }}
         >
@@ -506,35 +507,53 @@ function ChatRoom() {
             left: 0,
             right: 0,
             width: '100%',
-            padding: '8px 0',
+            padding: '8px 12px',
+            boxSizing: 'border-box',
             backgroundColor: '#fff',
             borderTop: `1px solid ${theme.NEUTRAL_BORDER}`,
             boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.08)',
             zIndex: 10
           })
         }}>
-          <div style={styles.gptCheckbox}>
+          <div style={{
+            ...styles.gptCheckbox,
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: isMobile ? '6px' : '12px',
+          }}>
             <input
               type="checkbox"
               id="gpt-checkbox"
               checked={isGPT}
               onChange={(e) => setIsGPT(e.target.checked)}
-              style={styles.checkbox}
+              style={{
+                ...styles.checkbox,
+                marginRight: '8px'
+              }}
             />
             <label
               htmlFor="gpt-checkbox"
-              style={getCheckboxLabelStyle()}
+              style={{
+                ...getCheckboxLabelStyle(),
+                ...(isMobile && {fontSize: '12px'}),
+                whiteSpace: 'nowrap' // 줄바꿈 방지
+              }}
               onMouseEnter={() => setIsCheckboxLabelHovered(true)}
               onMouseLeave={() => setIsCheckboxLabelHovered(false)}
             >
               GPT에게 질문하기
             </label>
           </div>
-          <InputBox
-            input={input}
-            setInput={setInput}
-            onSend={sendMessage}
-          />
+          <div style={{
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <InputBox
+              input={input}
+              setInput={setInput}
+              onSend={sendMessage}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -28,7 +28,7 @@ const styles = {
   // 💬 말풍선 기본 스타일
   bubbleBase: {
     padding: "12px 16px",
-    borderRadius: "18px",
+    borderRadius: "18px 18px 18px 18px",
     maxWidth: "75%",
     wordBreak: "break-word",
     lineHeight: "1.5",
@@ -41,7 +41,7 @@ const styles = {
   // 모바일용 말풍선 기본 스타일
   mobileBubble: {
     padding: "8px 12px",
-    borderRadius: "16px",
+    borderRadius: "16px 16px 16px 16px",
     fontSize: "14px",
     maxWidth: "75%",
   },
@@ -50,6 +50,9 @@ const styles = {
   bubbleMyMessage: {
     backgroundColor: theme.MAIN_LIGHT,
     color: theme.NEUTRAL_TEXT,
+    borderTopLeftRadius: "18px",
+    borderTopRightRadius: "18px",
+    borderBottomLeftRadius: "18px",
     borderBottomRightRadius: "4px",
     border: `1px solid rgba(130, 124, 209, 0.2)`,
     position: "relative",
@@ -62,7 +65,10 @@ const styles = {
   bubbleOther: {
     backgroundColor: "#FFFFFF",
     color: theme.NEUTRAL_TEXT,
+    borderTopLeftRadius: "18px",
+    borderTopRightRadius: "18px",
     borderBottomLeftRadius: "4px",
+    borderBottomRightRadius: "18px",
     border: `1px solid ${theme.NEUTRAL_BORDER}`,
     boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
     "&:hover": {
@@ -74,7 +80,10 @@ const styles = {
   bubbleGptPublic: {
     backgroundColor: "#F2F7FF",
     color: theme.NEUTRAL_TEXT,
+    borderTopLeftRadius: "18px",
+    borderTopRightRadius: "18px",
     borderBottomLeftRadius: "4px",
+    borderBottomRightRadius: "18px",
     border: "1px solid #E8F1FF",
     boxShadow: "0 2px 4px rgba(42, 82, 190, 0.05)",
     "&:hover": {
@@ -87,7 +96,10 @@ const styles = {
     backgroundColor: "#FFF9F0",
     border: "1px solid #FFE3B3",
     color: theme.NEUTRAL_TEXT,
+    borderTopLeftRadius: "18px",
+    borderTopRightRadius: "18px",
     borderBottomLeftRadius: "4px",
+    borderBottomRightRadius: "18px",
     boxShadow: "0 2px 4px rgba(252, 169, 2, 0.05)",
     "&:hover": {
       boxShadow: "0 3px 8px rgba(252, 169, 2, 0.1)",

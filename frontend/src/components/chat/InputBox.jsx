@@ -6,10 +6,12 @@ function InputBox({ input, setInput, onSend }) {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
+      setWindowWidth(window.innerWidth);
     };
 
     window.addEventListener('resize', handleResize);
@@ -30,11 +32,11 @@ function InputBox({ input, setInput, onSend }) {
   // 모바일 환경에서 폼 스타일 조정
   const formStyle = {
     ...styles.form,
-    ...(isMobile && {
-      width: "100%",
-      padding: "8px 12px",
-      boxSizing: "border-box"
-    })
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    boxSizing: 'border-box'
   };
 
   return (
@@ -42,10 +44,10 @@ function InputBox({ input, setInput, onSend }) {
       <div style={{
         ...styles.inputWrapper,
         ...(isFocused ? styles.inputWrapperFocused : {}),
-        ...(isMobile && {
-          height: "40px",
-          flexGrow: 1
-        })
+        flex: 1,
+        minHeight: isMobile ? '38px' : '46px',
+        display: 'flex',
+        alignItems: 'center'
       }}>
         <input
           ref={inputRef}
@@ -57,10 +59,9 @@ function InputBox({ input, setInput, onSend }) {
           placeholder="메시지를 입력하세요..."
           style={{
             ...styles.input,
-            ...(isMobile && {
-              padding: "8px 14px",
-              fontSize: "14px"
-            })
+            width: '100%',
+            fontSize: isMobile ? '14px' : '15px',
+            padding: isMobile ? '8px 14px' : '12px 18px'
           }}
         />
       </div>
@@ -70,11 +71,10 @@ function InputBox({ input, setInput, onSend }) {
         type="submit"
         style={{
           ...styles.sendButton,
-          ...(isMobile && {
-            minWidth: "40px",
-            height: "40px",
-            padding: "8px 12px"
-          })
+          minWidth: isMobile ? '40px' : '64px',
+          height: isMobile ? '38px' : '46px',
+          padding: isMobile ? '8px' : '12px 18px',
+          flexShrink: 0
         }}
         disabled={!input.trim()}
       >
@@ -130,6 +130,7 @@ const styles = {
     backgroundColor: "transparent",
     borderRadius: "24px",
     color: theme.NEUTRAL_TEXT,
+    lineHeight: "1.2",
   },
   sendButton: {
     display: "flex",

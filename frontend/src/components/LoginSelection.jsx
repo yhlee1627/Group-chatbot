@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 // 메인 색상 상수 정의
 const MAIN_COLOR = "rgb(130, 124, 209)";
 const LIGHT_MAIN_COLOR = "rgba(130, 124, 209, 0.1)";
+const TRANSPARENT_COLOR = "rgba(255, 255, 255, 0)";
 const HOVER_COLOR = "rgb(117, 111, 189)";
 
 function LoginSelection() {
@@ -62,7 +63,7 @@ function LoginSelection() {
             whileHover={{ scale: 1.02, backgroundColor: LIGHT_MAIN_COLOR, color: HOVER_COLOR }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate("/teacher-login")}
-            style={styles.secondaryButton}
+            style={{...styles.secondaryButton, backgroundColor: TRANSPARENT_COLOR}}
           >
             교사로 로그인
           </motion.button>
@@ -71,7 +72,7 @@ function LoginSelection() {
             whileHover={{ scale: 1.02, backgroundColor: LIGHT_MAIN_COLOR, color: HOVER_COLOR }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate("/admin-login")}
-            style={styles.secondaryButton}
+            style={{...styles.secondaryButton, backgroundColor: TRANSPARENT_COLOR}}
           >
             관리자로 로그인
           </motion.button>
@@ -159,7 +160,6 @@ const styles = {
   secondaryButton: {
     width: "100%",
     padding: "12px 0",
-    backgroundColor: "transparent",
     color: MAIN_COLOR,
     border: `1px solid ${MAIN_COLOR}`,
     borderRadius: "8px",
