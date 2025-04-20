@@ -11,21 +11,25 @@ export const getUserColor = (sender_id) => {
   return theme.NEUTRAL_TEXT;
 };
 
-// UTC 시간을 KST로 변환하는 헬퍼 함수
-const convertToKST = (timestamp) => {
-  if (!timestamp) return null;
+/**
+ * 간단한 타임스탬프 처리 함수
+ * - 모든 시간은 Date 객체로 변환하여 사용
+ * - 브라우저의 기본 시간대 변환 기능 활용
+ */
+const processTimestamp = (timestamp) => {
+  if (!timestamp) return new Date();
   
-  const date = new Date(timestamp);
-  // UTC 시간을 KST로 변환 (UTC+9)
-  return new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  // 어떤 형식이든 일관되게 Date 객체로 변환
+  return new Date(timestamp);
 };
 
-// 타임스탬프를 특정 형식으로 포맷팅 (시:분)
+// 타임스탬프를 시:분 형식으로 포맷팅
 export const formatTimestamp = (timestamp) => {
   if (!timestamp) return "";
   
-  const kstDate = convertToKST(timestamp);
-  return kstDate.toLocaleTimeString('ko-KR', { 
+  const date = processTimestamp(timestamp);
+  
+  return date.toLocaleTimeString('ko-KR', { 
     hour: "2-digit", 
     minute: "2-digit",
     hour12: false // 24시간제 사용
@@ -36,8 +40,8 @@ export const formatTimestamp = (timestamp) => {
 export const formatDate = (timestamp) => {
   if (!timestamp) return "";
   
-  const kstDate = convertToKST(timestamp);
-  return kstDate.toLocaleDateString('ko-KR', {
+  const date = processTimestamp(timestamp);
+  return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
@@ -48,8 +52,8 @@ export const formatDate = (timestamp) => {
 export const formatShortDate = (timestamp) => {
   if (!timestamp) return "";
   
-  const kstDate = convertToKST(timestamp);
-  return kstDate.toLocaleDateString('ko-KR', {
+  const date = processTimestamp(timestamp);
+  return date.toLocaleDateString('ko-KR', {
     month: '2-digit',
     day: '2-digit'
   }).replace(/\. /g, '-').replace('.', '');
@@ -59,13 +63,13 @@ export const formatShortDate = (timestamp) => {
 export const formatDatetime = (timestamp) => {
   if (!timestamp) return "";
   
-  const kstDate = convertToKST(timestamp);
-  const dateStr = kstDate.toLocaleDateString('ko-KR', {
+  const date = processTimestamp(timestamp);
+  const dateStr = date.toLocaleDateString('ko-KR', {
     month: '2-digit',
     day: '2-digit'
   }).replace(/\. /g, '-').replace('.', '');
   
-  const timeStr = kstDate.toLocaleTimeString('ko-KR', { 
+  const timeStr = date.toLocaleTimeString('ko-KR', { 
     hour: "2-digit", 
     minute: "2-digit",
     hour12: false

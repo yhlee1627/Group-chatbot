@@ -131,6 +131,14 @@ function ChatRoom() {
       // GPT 메시지거나 일반적인 필터링 조건을 만족하는 메시지만 표시
       if (isGPT || normalizedMsg.isPublic || normalizedMsg.isWhisperToMe || normalizedMsg.isFromMe) {
         console.log("✅ 메시지 표시 결정:", normalizedMsg);
+        
+        // 내가 보낸 메시지가 서버에서 돌아온 경우, 중복 추가 방지
+        // 이미 클라이언트에서 추가했으므로 무시
+        if (normalizedMsg.isFromMe && !isGPT) {
+          console.log("🔄 내가 보낸 메시지가 서버에서 돌아옴, 중복 방지");
+          return;
+        }
+        
         // 메시지 추가
         setMessages((prev) => [...prev, normalizedMsg]);
         
@@ -245,6 +253,10 @@ function ChatRoom() {
   }, []);
 
   const sendMessage = (text) => {
+    // 현재 시간을 생성
+    const now = new Date();
+    
+    // 서버에 메시지 전송
     socket.emit("send_message", {
       room_id: roomId,
       sender_id: studentId,
@@ -252,6 +264,26 @@ function ChatRoom() {
       is_gpt_question: isGPT,
       ...(isGPT ? { target: "gpt" } : {})
     });
+    
+    // 로컬에 메시지 추가 (서버 응답 기다리지 않고 즉시 표시)
+    // 이는 사용자 경험을 향상시키고 현재 시간이 올바르게 표시되게 함
+    const localMessage = {
+      sender_id: studentId,
+      message: text,
+      timestamp: now.toISOString(), // ISO 형식으로 변환
+      name: localStorage.getItem("studentName") || studentId,
+      is_gpt_question: isGPT,
+      isFromMe: true, // 내가 보낸 메시지임을 표시
+      isPublic: !isGPT, // GPT에게 보내는 메시지는 공개 메시지가 아님
+    };
+    
+    if (isGPT) {
+      localMessage.target = "gpt";
+      localMessage.whisper = true;
+    }
+    
+    // 메시지 목록에 추가
+    setMessages(prev => [...prev, localMessage]);
   };
 
   const leaveRoom = () => {
