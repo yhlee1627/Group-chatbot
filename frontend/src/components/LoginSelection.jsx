@@ -19,12 +19,22 @@ function LoginSelection() {
           transition={{ delay: 0.2 }}
           style={styles.logoContainer}
         >
-          <div style={styles.logo}>💬</div>
-          <h1 style={styles.title}>AI 그룹 채팅</h1>
+          <img 
+            src="/images/berry-icon.png" 
+            alt="BerryChat Logo" 
+            style={styles.logoImage} 
+            onError={(e) => {
+              // 이미지 로드 실패 시 이모지 폴백
+              e.target.style.display = 'none';
+              document.getElementById('fallbackLogo').style.display = 'block';
+            }}
+          />
+          <div id="fallbackLogo" style={{...styles.logo, display: 'none'}}>🫐</div>
+          <h1 style={styles.title}>BerryChat</h1>
         </motion.div>
 
         <p style={styles.subtitle}>
-          로그인을 통해 실시간 채팅에 참여하세요
+          혼자보다 함께, 더 나은 대화
         </p>
 
         <div style={styles.buttonContainer}>
@@ -97,6 +107,12 @@ const styles = {
     flexDirection: "column",
     alignItems: "center",
     marginBottom: "24px",
+  },
+  logoImage: {
+    width: "64px",
+    height: "64px",
+    marginBottom: "12px",
+    objectFit: "contain",
   },
   logo: {
     fontSize: "42px",
