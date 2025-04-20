@@ -121,12 +121,17 @@ function ChatRoom() {
       
       // GPT 메시지는 무조건 표시 (아주 중요: 귓속말 기능 디버깅 위해)
       const isGPT = msg.sender_id === "gpt";
+      const isMyMessage = msg.sender_id === studentId;
       
       // 메시지 데이터 정규화
       const normalizedMsg = normalizeMessage(msg, studentId);
       
       // 정규화 후 메시지 상태 확인
       logMessageStructure("정규화 후", normalizedMsg);
+      
+      // 중요: 웹소켓으로 실시간 수신된 모든 메시지의 타임스탬프를 현재 시간으로 설정
+      // 이렇게 하면 DB에서 불러온 메시지와 소켓으로 실시간 수신된 메시지의 시간이 일관되게 표시됨
+      normalizedMsg.timestamp = new Date().toISOString();
       
       // GPT 메시지거나 일반적인 필터링 조건을 만족하는 메시지만 표시
       if (isGPT || normalizedMsg.isPublic || normalizedMsg.isWhisperToMe || normalizedMsg.isFromMe) {
@@ -160,7 +165,18 @@ function ChatRoom() {
       });
       
       // 메시지 히스토리 정규화
-      const normalizedMessages = messages.map(msg => normalizeMessage(msg, studentId));
+      const normalizedMessages = messages.map(msg => {
+        const normalizedMsg = normalizeMessage(msg, studentId);
+        
+        // 모든 메시지의 타임스탬프를 클라이언트 시간대에 맞게 조정
+        if (normalizedMsg.timestamp) {
+          normalizedMsg.timestamp = new Date(normalizedMsg.timestamp).toISOString();
+        } else {
+          normalizedMsg.timestamp = new Date().toISOString();
+        }
+        
+        return normalizedMsg;
+      });
       
       setMessages(normalizedMessages);
       setIsLoading(false);

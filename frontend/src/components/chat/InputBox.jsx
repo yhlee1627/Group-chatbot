@@ -4,6 +4,7 @@ import theme from "../../styles/theme";
 
 function InputBox({ input, setInput, onSend }) {
   const [isFocused, setIsFocused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const inputRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -41,14 +42,19 @@ function InputBox({ input, setInput, onSend }) {
 
   return (
     <form onSubmit={handleSubmit} style={formStyle}>
-      <div style={{
-        ...styles.inputWrapper,
-        ...(isFocused ? styles.inputWrapperFocused : {}),
-        flex: 1,
-        minHeight: isMobile ? '38px' : '46px',
-        display: 'flex',
-        alignItems: 'center'
-      }}>
+      <div 
+        style={{
+          ...styles.inputWrapper,
+          ...(isFocused ? styles.inputWrapperFocused : {}),
+          ...(isHovered && !isFocused ? styles.inputWrapperHover : {}),
+          flex: 1,
+          minHeight: isMobile ? '38px' : '46px',
+          display: 'flex',
+          alignItems: 'center'
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <input
           ref={inputRef}
           type="text"
@@ -115,6 +121,10 @@ const styles = {
     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05) inset",
     display: "flex", // flexbox 추가
     alignItems: "center" // 세로 중앙 정렬
+  },
+  inputWrapperHover: {
+    border: `1px solid ${theme.NEUTRAL_DARK_BORDER}`,
+    backgroundColor: "#FCFCFD",
   },
   inputWrapperFocused: {
     border: `1px solid ${theme.MAIN_COLOR}`,
