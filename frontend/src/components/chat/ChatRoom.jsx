@@ -4,6 +4,7 @@ import { socket } from "../../socket";
 import MessageList from "./MessageList";
 import InputBox from "./InputBox";
 import { motion } from "framer-motion";
+import theme from "../../styles/theme";
 
 // 메시지 데이터 정규화 헬퍼 함수 - 더 견고한 버전
 const normalizeMessage = (msg, currentStudentId) => {
@@ -48,6 +49,14 @@ function ChatRoom() {
   const [userNames, setUserNames] = useState({});
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [isCloseHovered, setIsCloseHovered] = useState(false);
+  const [isMenuHovered, setIsMenuHovered] = useState(false);
+  const [isLeaveHovered, setIsLeaveHovered] = useState(false);
+  const [hoveredChatItem, setHoveredChatItem] = useState(null);
+  const [hoveredParticipant, setHoveredParticipant] = useState(null);
+  const [isCheckboxLabelHovered, setIsCheckboxLabelHovered] = useState(false);
+  const [isLoadMoreHovered, setIsLoadMoreHovered] = useState(false);
 
   const navigate = useNavigate();
   const studentId = localStorage.getItem("studentId");
@@ -249,7 +258,61 @@ function ChatRoom() {
   };
 
   const toggleSidebar = () => {
-    setShowSidebar(!showSidebar);
+    console.log("토글 사이드바 호출됨", { 현재상태: showSidebar });
+    setShowSidebar(prev => !prev);
+  };
+
+  // 스타일 계산 함수들
+  const getCloseButtonStyle = () => {
+    return {
+      ...styles.closeButton,
+      ...(isCloseHovered ? { backgroundColor: "rgba(0, 0, 0, 0.05)" } : {})
+    };
+  };
+
+  const getMenuButtonStyle = () => {
+    return {
+      ...styles.menuButton,
+      ...(isMenuHovered ? { backgroundColor: theme.MAIN_LIGHT } : {})
+    };
+  };
+
+  const getLeaveButtonStyle = () => {
+    return {
+      ...styles.leaveButton,
+      ...(isLeaveHovered ? { backgroundColor: theme.MAIN_LIGHT } : {})
+    };
+  };
+
+  const getChatItemStyle = (itemId) => {
+    return {
+      ...styles.chatItem,
+      ...(hoveredChatItem === itemId ? { backgroundColor: theme.MAIN_LIGHT } : {})
+    };
+  };
+
+  const getParticipantItemStyle = (participantId) => {
+    return {
+      ...styles.participantItem,
+      ...(hoveredParticipant === participantId ? { backgroundColor: theme.MAIN_LIGHT } : {})
+    };
+  };
+
+  const getCheckboxLabelStyle = () => {
+    return {
+      ...styles.checkboxLabel,
+      ...(isCheckboxLabelHovered ? { color: theme.MAIN_COLOR } : {})
+    };
+  };
+
+  const getLoadMoreButtonStyle = () => {
+    return {
+      ...styles.loadMoreButton,
+      ...(isLoadMoreHovered ? { 
+        backgroundColor: theme.MAIN_LIGHT,
+        borderColor: theme.MAIN_COLOR 
+      } : {})
+    };
   };
 
   return (
@@ -262,72 +325,110 @@ function ChatRoom() {
         />
       )}
     
-      {/* 사이드바 - 모바일에서는 숨김 */}
-      {showSidebar && (
-        <div style={styles.sidebar}>
-          <div style={styles.sidebarHeader}>
-            <h2 style={styles.sidebarTitle}>채팅</h2>
-            {isMobile && (
-              <button onClick={toggleSidebar} style={styles.closeButton}>
-                ✕
-              </button>
-            )}
-          </div>
-          <div style={styles.chatList}>
-            <div style={styles.chatItem}>
-              <div style={styles.chatItemAvatar}>👤</div>
-              <div style={styles.chatItemContent}>
-                <div style={styles.chatItemName}>{roomTitle}</div>
-                <div style={styles.chatItemPreview}>
-                  {participants.length}명 참여 중
-                </div>
+      {/* 사이드바 컴포넌트 */}
+      <div style={{
+        ...styles.sidebar,
+        ...(isMobile ? { 
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          width: '80%',
+          maxWidth: '320px',
+          zIndex: 1001,
+          transform: showSidebar ? 'translateX(0)' : 'translateX(-100%)'
+        } : {})
+      }}>
+        <div style={styles.sidebarHeader}>
+          <h2 style={styles.sidebarTitle}>채팅방</h2>
+          {isMobile && (
+            <button 
+              onClick={toggleSidebar} 
+              style={getCloseButtonStyle()}
+              onMouseEnter={() => setIsCloseHovered(true)}
+              onMouseLeave={() => setIsCloseHovered(false)}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        <div style={styles.chatList}>
+          <div 
+            style={getChatItemStyle('main')}
+            onMouseEnter={() => setHoveredChatItem('main')}
+            onMouseLeave={() => setHoveredChatItem(null)}
+          >
+            <div style={styles.chatItemContent}>
+              <div style={styles.chatItemName}>{roomTitle}</div>
+              <div style={styles.chatItemPreview}>
+                {participants.length}명 참여 중
               </div>
             </div>
-            
-            <div style={styles.participantsSection}>
-              <h3 style={styles.participantsTitle}>참여자 목록</h3>
-              <div style={styles.participantsContainer}>
-                {participants.map(p => (
-                  <div key={p.student_id} style={styles.participantItem}>
-                    <div style={styles.participantAvatar}>👤</div>
-                    <div style={styles.participantInfo}>
-                      <div style={styles.participantDisplayName}>{p.name || p.student_id}</div>
-                      {p.name && <div style={styles.participantId}>{p.student_id}</div>}
-                    </div>
+          </div>
+          
+          <div style={styles.participantsSection}>
+            <h3 style={styles.participantsTitle}>
+              <span>👥</span> 참여자 목록
+            </h3>
+            <div style={styles.participantsContainer}>
+              {participants.map(p => (
+                <div 
+                  key={p.student_id} 
+                  style={getParticipantItemStyle(p.student_id)}
+                  onMouseEnter={() => setHoveredParticipant(p.student_id)}
+                  onMouseLeave={() => setHoveredParticipant(null)}
+                >
+                  <div style={styles.participantAvatar}>👤</div>
+                  <div style={styles.participantInfo}>
+                    <div style={styles.participantDisplayName}>{p.name || p.student_id}</div>
+                    {p.name && <div style={styles.participantId}>{p.student_id}</div>}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* 메인 콘텐츠 영역 */}
       <div style={styles.mainContent}>
-        {/* 헤더 - 현재 채팅방 정보만 표시 */}
+        {/* 헤더 - 현재 채팅방 정보 */}
         <div style={styles.header}>
           <div style={styles.headerLeft}>
-            {!showSidebar && (
-              <button onClick={toggleSidebar} style={styles.menuButton}>
+            {isMobile && (
+              <button 
+                onClick={toggleSidebar} 
+                style={getMenuButtonStyle()}
+                onMouseEnter={() => setIsMenuHovered(true)}
+                onMouseLeave={() => setIsMenuHovered(false)}
+              >
                 ☰
               </button>
             )}
-            <div style={styles.avatar}>👤</div>
             <div style={styles.roomInfo}>
               <h2 style={styles.title}>{roomTitle}</h2>
               <div style={styles.participantCount}>
                 {participants.length}명 참여 중
               </div>
               <div style={styles.participantList}>
-                {participants.map(p => (
+                {participants.slice(0, 3).map(p => (
                   <span key={p.student_id} style={styles.participantName}>
                     {p.name || p.student_id}
                   </span>
-                )).reduce((prev, curr) => prev.length ? [prev, ', ', curr] : [curr], [])}
+                )).reduce((prev, curr, i) => i === 0 ? [curr] : [prev, ', ', curr], [])}
+                {participants.length > 3 && ` 외 ${participants.length - 3}명`}
               </div>
             </div>
           </div>
-          <button onClick={leaveRoom} style={styles.leaveButton}>
+          <button 
+            onClick={leaveRoom} 
+            style={getLeaveButtonStyle()}
+            onMouseEnter={() => setIsLeaveHovered(true)}
+            onMouseLeave={() => setIsLeaveHovered(false)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17 7L15.59 8.41L18.17 11H8V13H18.17L15.59 15.58L17 17L22 12L17 7Z" fill="currentColor"/>
+              <path d="M4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/>
+            </svg>
             <span style={styles.leaveButtonText}>나가기</span>
           </button>
         </div>
@@ -337,15 +438,32 @@ function ChatRoom() {
           style={styles.messageArea} 
           ref={messageAreaRef}
         >
-          {isLoading ? (
-            <div style={styles.loadingContainer}>
-              <div style={styles.loadingSpinner}></div>
-              <p style={styles.loadingText}>채팅 내용을 불러오는 중...</p>
-            </div>
-          ) : (
-            <MessageList messages={messages} studentId={studentId} />
-          )}
-          <div ref={messagesEndRef} />
+          <div style={styles.messageListContainer}>
+            {loadingMore && (
+              <div style={{...styles.loadingSpinner, margin: '20px auto', width: '30px', height: '30px'}}></div>
+            )}
+            
+            {!isLoading && messages.length > 0 && (
+              <button
+                style={getLoadMoreButtonStyle()}
+                onMouseEnter={() => setIsLoadMoreHovered(true)}
+                onMouseLeave={() => setIsLoadMoreHovered(false)}
+                onClick={() => console.log("더 많은 메시지 로드")}
+              >
+                이전 메시지 더 보기
+              </button>
+            )}
+            
+            {isLoading ? (
+              <div style={styles.loadingContainer}>
+                <div style={styles.loadingSpinner}></div>
+                <p style={styles.loadingText}>채팅 내용을 불러오는 중...</p>
+              </div>
+            ) : (
+              <MessageList messages={messages} studentId={studentId} />
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
         {/* 입력 영역 */}
@@ -358,8 +476,13 @@ function ChatRoom() {
               onChange={(e) => setIsGPT(e.target.checked)}
               style={styles.checkbox}
             />
-            <label htmlFor="gpt-question" style={styles.checkboxLabel}>
-              GPT에게 질문
+            <label 
+              htmlFor="gpt-question" 
+              style={getCheckboxLabelStyle()}
+              onMouseEnter={() => setIsCheckboxLabelHovered(true)}
+              onMouseLeave={() => setIsCheckboxLabelHovered(false)}
+            >
+              GPT에게 질문하기
             </label>
           </div>
           <InputBox
@@ -377,14 +500,14 @@ const styles = {
   container: {
     display: "flex",
     height: "100vh",
-    backgroundColor: "#FAFAFA",
+    backgroundColor: theme.NEUTRAL_BACKGROUND,
     fontFamily: "'Noto Sans KR', sans-serif",
     overflow: "hidden", // 화면 넘침 방지
   },
   sidebar: {
-    width: "300px",
-    minWidth: "300px",
-    borderRight: "1px solid #DBDBDB",
+    width: "320px",
+    minWidth: "320px",
+    borderRight: `1px solid ${theme.NEUTRAL_BORDER}`,
     backgroundColor: "#FFFFFF",
     display: "flex",
     flexDirection: "column",
@@ -392,16 +515,21 @@ const styles = {
     overflowY: "auto",
     position: "relative",
     zIndex: 1001, // 오버레이보다 높은 z-index
+    boxShadow: theme.SHADOW_SM,
+    transition: "transform 0.3s ease-in-out",
   },
   sidebarHeader: {
     padding: "20px",
-    borderBottom: "1px solid #DBDBDB",
+    borderBottom: `1px solid ${theme.NEUTRAL_BORDER}`,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   sidebarTitle: {
     fontSize: "20px",
     fontWeight: "600",
     margin: "0",
-    color: "#262626",
+    color: theme.MAIN_COLOR,
   },
   chatList: {
     flex: 1,
@@ -410,33 +538,38 @@ const styles = {
   chatItem: {
     display: "flex",
     alignItems: "center",
-    padding: "12px 20px",
-    borderBottom: "1px solid #DBDBDB",
-    backgroundColor: "#FAFAFA",
+    padding: "16px 20px",
+    borderBottom: `1px solid ${theme.NEUTRAL_BORDER}`,
+    backgroundColor: theme.NEUTRAL_BACKGROUND,
+    transition: "background-color 0.2s ease",
+    cursor: "pointer",
   },
   chatItemAvatar: {
-    width: "44px",
-    height: "44px",
+    width: "48px",
+    height: "48px",
     borderRadius: "50%",
-    backgroundColor: "#EFEFEF",
+    backgroundColor: theme.MAIN_LIGHT,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: "12px",
-    fontSize: "20px",
+    marginRight: "16px",
+    fontSize: "24px",
+    color: theme.MAIN_COLOR,
+    border: `1px solid rgba(130, 124, 209, 0.2)`,
+    boxShadow: theme.SHADOW_SM,
   },
   chatItemContent: {
     flex: 1,
   },
   chatItemName: {
-    fontSize: "14px",
+    fontSize: "16px",
     fontWeight: "600",
-    color: "#262626",
-    marginBottom: "4px",
+    color: theme.NEUTRAL_TEXT,
+    marginBottom: "6px",
   },
   chatItemPreview: {
-    fontSize: "12px",
-    color: "#8E8E8E",
+    fontSize: "13px",
+    color: theme.NEUTRAL_LIGHT_TEXT,
   },
   mainContent: {
     flex: 1,
@@ -451,8 +584,10 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "14px 20px",
-    borderBottom: "1px solid #DBDBDB",
+    padding: "16px 20px",
+    borderBottom: `1px solid ${theme.NEUTRAL_BORDER}`,
+    backgroundColor: "#FFFFFF",
+    boxShadow: theme.SHADOW_SM,
   },
   headerLeft: {
     display: "flex",
@@ -461,42 +596,47 @@ const styles = {
   menuButton: {
     background: "none",
     border: "none",
-    fontSize: "20px",
+    fontSize: "22px",
     cursor: "pointer",
-    marginRight: "12px",
-    color: "#262626",
-    padding: "0",
+    marginRight: "16px",
+    color: theme.MAIN_COLOR,
+    padding: "8px",
+    borderRadius: "50%",
+    transition: "background-color 0.2s ease",
   },
   avatar: {
-    width: "32px",
-    height: "32px",
+    width: "40px",
+    height: "40px",
     borderRadius: "50%",
-    backgroundColor: "#EFEFEF",
+    backgroundColor: theme.MAIN_LIGHT,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: "12px",
-    fontSize: "16px",
+    marginRight: "16px",
+    fontSize: "20px",
+    color: theme.MAIN_COLOR,
+    border: `1px solid rgba(130, 124, 209, 0.2)`,
+    boxShadow: theme.SHADOW_SM,
   },
   roomInfo: {
     display: "flex",
     flexDirection: "column",
   },
   title: {
-    fontSize: "16px",
+    fontSize: "18px",
     fontWeight: "600",
     margin: "0",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
   },
   participantCount: {
-    fontSize: "12px",
-    color: "#8E8E8E",
-    marginTop: "2px",
+    fontSize: "13px",
+    color: theme.NEUTRAL_LIGHT_TEXT,
+    marginTop: "4px",
   },
   participantList: {
     fontSize: "12px",
-    color: "#8E8E8E",
-    marginTop: "2px",
+    color: theme.NEUTRAL_LIGHT_TEXT,
+    marginTop: "4px",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -504,29 +644,37 @@ const styles = {
   },
   participantName: {
     fontSize: "12px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
   },
   leaveButton: {
     backgroundColor: "transparent",
-    border: "none",
-    color: "#0095F6",
+    border: `1px solid ${theme.MAIN_COLOR}`,
+    color: theme.MAIN_COLOR,
     cursor: "pointer",
     fontSize: "14px",
     fontWeight: "600",
     padding: "8px 16px",
-    borderRadius: "4px",
-    transition: "background-color 0.2s",
+    borderRadius: theme.ROUNDED_MD,
+    transition: "all 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  leaveButtonText: {
+    marginLeft: "4px",
   },
   messageArea: {
     flex: 1,
     overflowY: "auto",
     padding: "20px",
-    backgroundColor: "#FAFAFA",
+    backgroundColor: theme.NEUTRAL_BACKGROUND,
+    position: "relative",
   },
   inputContainer: {
-    padding: "20px",
-    borderTop: "1px solid #DBDBDB",
+    padding: "16px 20px",
+    borderTop: `1px solid ${theme.NEUTRAL_BORDER}`,
     backgroundColor: "#FFFFFF",
+    boxShadow: "0 -1px 5px rgba(0, 0, 0, 0.03)",
   },
   gptCheckbox: {
     display: "flex",
@@ -534,23 +682,29 @@ const styles = {
     marginBottom: "12px",
   },
   checkbox: {
-    width: "16px",
-    height: "16px",
+    width: "18px",
+    height: "18px",
     marginRight: "8px",
-    accentColor: "#0095F6",
+    accentColor: theme.MAIN_COLOR,
+    cursor: "pointer",
   },
   checkboxLabel: {
-    fontSize: "13px",
-    color: "#262626",
+    fontSize: "14px",
+    color: theme.NEUTRAL_TEXT,
     userSelect: "none",
+    fontWeight: "500",
+    cursor: "pointer",
+    transition: "color 0.2s ease",
   },
   closeButton: {
     background: "none",
     border: "none",
-    fontSize: "20px",
+    fontSize: "22px",
     cursor: "pointer",
-    padding: "0",
-    color: "#262626",
+    padding: "8px",
+    color: theme.NEUTRAL_TEXT,
+    borderRadius: "50%",
+    transition: "background-color 0.2s ease",
   },
   // 반응형 스타일 수정
   '@media (max-width: 768px)': {
@@ -559,8 +713,12 @@ const styles = {
       left: 0,
       top: 0,
       width: '80%',
-      maxWidth: '300px',
+      maxWidth: '320px',
       zIndex: 1001,
+      transform: 'translateX(-100%)',
+    },
+    sidebarOpen: {
+      transform: 'translateX(0)',
     },
     mainContent: {
       width: '100%',
@@ -574,37 +732,46 @@ const styles = {
     height: "100%",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     zIndex: 1000,
+    backdropFilter: "blur(2px)",
   },
   participantsSection: {
     padding: "20px",
-    borderTop: "1px solid #DBDBDB",
+    borderTop: `1px solid ${theme.NEUTRAL_BORDER}`,
   },
   participantsTitle: {
     fontSize: "16px",
     fontWeight: "600",
-    marginBottom: "12px",
-    color: "#262626",
+    marginBottom: "16px",
+    color: theme.NEUTRAL_TEXT,
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
   },
   participantsContainer: {
     display: "flex",
     flexDirection: "column",
+    gap: "12px",
   },
   participantItem: {
     display: "flex",
     alignItems: "center",
-    padding: "10px 0",
-    borderBottom: "1px solid #F0F0F0",
+    padding: "12px 16px",
+    backgroundColor: theme.NEUTRAL_BACKGROUND,
+    borderRadius: theme.ROUNDED_MD,
+    transition: "background-color 0.2s ease",
   },
   participantAvatar: {
-    width: "32px",
-    height: "32px",
+    width: "36px",
+    height: "36px",
     borderRadius: "50%",
-    backgroundColor: "#EFEFEF",
+    backgroundColor: theme.MAIN_LIGHT,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: "8px",
+    marginRight: "12px",
     fontSize: "16px",
+    color: theme.MAIN_COLOR,
+    border: `1px solid rgba(130, 124, 209, 0.2)`,
   },
   participantInfo: {
     display: "flex",
@@ -613,11 +780,12 @@ const styles = {
   participantDisplayName: {
     fontSize: "14px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
   },
   participantId: {
     fontSize: "12px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
+    marginTop: "2px",
   },
   loadingContainer: {
     display: "flex",
@@ -625,21 +793,42 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     height: "100%",
-    padding: "20px",
+    padding: "40px",
   },
   loadingSpinner: {
     width: "40px",
     height: "40px",
-    border: "4px solid rgba(0, 149, 246, 0.1)",
+    border: `3px solid ${theme.MAIN_LIGHT}`,
     borderRadius: "50%",
-    borderTop: "4px solid #0095F6",
+    borderTop: `3px solid ${theme.MAIN_COLOR}`,
     animation: "spin 1s linear infinite",
-    marginBottom: "16px",
+    marginBottom: "20px",
   },
   loadingText: {
-    fontSize: "14px",
-    color: "#8E8E8E",
+    fontSize: "15px",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     margin: 0,
+    fontWeight: "500",
+  },
+  loadMoreButton: {
+    backgroundColor: "#FFFFFF",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    color: theme.NEUTRAL_TEXT,
+    padding: "10px 16px",
+    borderRadius: theme.ROUNDED_MD,
+    fontSize: "14px",
+    fontWeight: "500",
+    cursor: "pointer",
+    margin: "0 auto 20px auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: theme.SHADOW_SM,
+    transition: "all 0.2s ease",
+  },
+  messageListContainer: {
+    display: "flex",
+    flexDirection: "column",
   },
 };
 

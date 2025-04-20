@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import SectionTitle from "./shared/SectionTitle";
+import theme from "../../styles/theme";
 
 function TeacherTab({ backend, headers, classes }) {
   const [teachers, setTeachers] = useState([]);
@@ -163,7 +164,7 @@ function TeacherTab({ backend, headers, classes }) {
                 onClick={() => setShowPassword(!showPassword)}
                 style={styles.eyeButton}
               >
-                {showPassword ? "🙈" : "👁️"}
+                {showPassword ? "숨기기" : "보기"}
               </button>
             </div>
           </div>
@@ -199,7 +200,6 @@ function TeacherTab({ backend, headers, classes }) {
       {/* 교사 목록 */}
       {teachers.length === 0 ? (
         <div style={styles.emptyState}>
-          <div style={styles.emptyIcon}>📚</div>
           <p style={styles.emptyText}>등록된 교사가 없습니다.</p>
           <p style={styles.emptySubtext}>
             "새 교사 추가 +" 버튼을 클릭하여 교사를 추가하세요.
@@ -213,7 +213,6 @@ function TeacherTab({ backend, headers, classes }) {
                 style={styles.teacherCardHeader}
                 onClick={() => toggleTeacherDetails(teacher.teacher_id)}
               >
-                <div style={styles.teacherAvatar}>📚</div>
                 <div style={styles.teacherInfo}>
                   <h4 style={styles.teacherName}>{teacher.name || teacher.teacher_id}</h4>
                   <p style={styles.teacherId}>ID: {teacher.teacher_id}</p>
@@ -235,7 +234,7 @@ function TeacherTab({ backend, headers, classes }) {
                     onClick={() => deleteTeacher(teacher.teacher_id)}
                     style={styles.deleteButton}
                   >
-                    🗑️ 교사 삭제
+                    교사 삭제
                   </button>
                 </div>
               )}
@@ -249,59 +248,56 @@ function TeacherTab({ backend, headers, classes }) {
 
 const styles = {
   container: {
-    padding: "10px",
-    backgroundColor: "#FAFAFA",
-    borderRadius: "8px",
+    padding: "20px",
+    backgroundColor: "#FFFFFF",
+    borderRadius: theme.ROUNDED_LG,
     width: "100%",
+    boxShadow: theme.SHADOW_SM,
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "20px",
+    marginBottom: "24px",
   },
   addButton: {
-    backgroundColor: "#0095F6",
+    backgroundColor: theme.MAIN_COLOR,
     color: "white",
     fontWeight: "600",
     border: "none",
-    borderRadius: "4px",
-    padding: "8px 16px",
+    borderRadius: theme.ROUNDED_MD,
+    padding: "10px 16px",
     fontSize: "14px",
     cursor: "pointer",
-    transition: "background-color 0.2s",
+    transition: "background-color 0.2s ease",
+    "&:hover": {
+      backgroundColor: theme.MAIN_DARK,
+    }
   },
   teacherGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-    gap: "16px",
+    gap: "20px",
     marginBottom: "32px",
   },
   teacherCard: {
-    border: "1px solid #DBDBDB",
-    borderRadius: "8px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_LG,
     backgroundColor: "white",
     overflow: "hidden",
-    transition: "box-shadow 0.2s ease",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+    transition: "all 0.2s ease",
+    boxShadow: theme.SHADOW_XS,
+    "&:hover": {
+      boxShadow: theme.SHADOW_MD,
+      transform: "translateY(-2px)",
+    }
   },
   teacherCardHeader: {
     display: "flex",
     alignItems: "center",
-    padding: "16px",
+    padding: "20px",
     cursor: "pointer",
     position: "relative",
-  },
-  teacherAvatar: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "50%",
-    backgroundColor: "#F5F5F5",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "20px",
-    marginRight: "16px",
   },
   teacherInfo: {
     flex: 1,
@@ -309,67 +305,72 @@ const styles = {
   teacherName: {
     fontSize: "16px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: "0 0 4px 0",
   },
   teacherId: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     margin: 0,
   },
   classTag: {
     display: "inline-block",
-    backgroundColor: "#F5F5F5",
-    color: "#262626",
-    fontSize: "12px",
-    fontWeight: "600",
-    padding: "4px 8px",
-    borderRadius: "4px",
+    backgroundColor: "#F9F9FB",
+    color: theme.NEUTRAL_TEXT,
+    fontSize: "13px",
+    fontWeight: "500",
+    padding: "4px 10px",
+    borderRadius: theme.ROUNDED_MD,
     marginLeft: "8px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
   },
   teacherDetails: {
-    padding: "16px",
-    borderTop: "1px solid #EFEFEF",
-    backgroundColor: "#FAFAFA",
+    padding: "20px",
+    borderTop: `1px solid ${theme.NEUTRAL_BORDER}`,
+    backgroundColor: "#F9F9FB",
   },
   detailItem: {
     display: "flex",
-    margin: "0 0 8px 0",
+    margin: "0 0 12px 0",
   },
   detailLabel: {
     width: "80px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     fontSize: "14px",
   },
   detailValue: {
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     fontSize: "14px",
     fontWeight: "500",
   },
   deleteButton: {
     width: "100%",
     backgroundColor: "transparent",
-    color: "#ED4956",
-    border: "1px solid #ED4956",
-    borderRadius: "4px",
-    padding: "8px 12px",
+    color: theme.ERROR,
+    border: `1px solid ${theme.ERROR}`,
+    borderRadius: theme.ROUNDED_MD,
+    padding: "10px 16px",
     fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
-    marginTop: "8px",
-    transition: "background-color 0.2s",
+    marginTop: "16px",
+    transition: "all 0.2s ease",
+    "&:hover": {
+      backgroundColor: "rgba(237, 73, 86, 0.1)",
+    }
   },
   formContainer: {
     backgroundColor: "white",
-    border: "1px solid #DBDBDB",
-    borderRadius: "8px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_LG,
     padding: "24px",
     marginBottom: "24px",
+    boxShadow: theme.SHADOW_SM,
   },
   formTitle: {
-    fontSize: "16px",
+    fontSize: "18px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     marginTop: 0,
     marginBottom: "24px",
     textAlign: "center",
@@ -381,30 +382,42 @@ const styles = {
     display: "block",
     fontSize: "14px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     marginBottom: "8px",
   },
   formInput: {
     width: "100%",
-    padding: "10px 12px",
+    padding: "12px 14px",
     fontSize: "14px",
-    border: "1px solid #DBDBDB",
-    borderRadius: "4px",
-    backgroundColor: "#FAFAFA",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_MD,
+    backgroundColor: "#FFFFFF",
     boxSizing: "border-box",
+    transition: "all 0.2s ease",
+    '&:focus': {
+      borderColor: theme.MAIN_COLOR,
+      outline: "none",
+      boxShadow: `0 0 0 3px ${theme.MAIN_LIGHT}`,
+    }
   },
   passwordContainer: {
     position: "relative",
   },
   passwordInput: {
     width: "100%",
-    padding: "10px 12px",
+    padding: "12px 14px",
     fontSize: "14px",
-    border: "1px solid #DBDBDB",
-    borderRadius: "4px",
-    backgroundColor: "#FAFAFA",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_MD,
+    backgroundColor: "#FFFFFF",
     boxSizing: "border-box",
-    paddingRight: "40px",
+    paddingRight: "70px",
+    transition: "all 0.2s ease",
+    '&:focus': {
+      borderColor: theme.MAIN_COLOR,
+      outline: "none",
+      boxShadow: `0 0 0 3px ${theme.MAIN_LIGHT}`,
+    }
   },
   eyeButton: {
     position: "absolute",
@@ -414,67 +427,76 @@ const styles = {
     background: "none",
     border: "none",
     cursor: "pointer",
-    fontSize: "16px",
+    fontSize: "14px",
+    color: theme.MAIN_COLOR,
+    padding: "6px 8px",
+    fontWeight: "500",
   },
   formSelect: {
     width: "100%",
-    padding: "10px 12px",
+    padding: "12px 14px",
     fontSize: "14px",
-    border: "1px solid #DBDBDB",
-    borderRadius: "4px",
-    backgroundColor: "#FAFAFA",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_MD,
+    backgroundColor: "#FFFFFF",
     boxSizing: "border-box",
     appearance: "none",
     backgroundImage: "url('data:image/svg+xml;utf8,<svg fill=\"%23262626\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\"><path d=\"M7 10l5 5 5-5z\"/></svg>')",
     backgroundRepeat: "no-repeat",
     backgroundPosition: "right 10px center",
+    transition: "all 0.2s ease",
+    '&:focus': {
+      borderColor: theme.MAIN_COLOR,
+      outline: "none",
+      boxShadow: `0 0 0 3px ${theme.MAIN_LIGHT}`,
+    }
   },
   submitButton: {
-    backgroundColor: "#0095F6",
+    backgroundColor: theme.MAIN_COLOR,
     color: "white",
     fontWeight: "600",
     border: "none",
-    borderRadius: "4px",
-    padding: "10px 16px",
+    borderRadius: theme.ROUNDED_MD,
+    padding: "12px 16px",
     width: "100%",
     fontSize: "14px",
     cursor: "pointer",
-    marginTop: "8px",
-    transition: "background-color 0.2s",
+    marginTop: "16px",
+    transition: "background-color 0.2s ease",
+    "&:hover": {
+      backgroundColor: theme.MAIN_DARK,
+    }
   },
   submitButtonDisabled: {
-    backgroundColor: "#B2DFFC",
+    backgroundColor: theme.NEUTRAL_BORDER,
     color: "white",
     fontWeight: "600",
     border: "none",
-    borderRadius: "4px",
-    padding: "10px 16px",
+    borderRadius: theme.ROUNDED_MD,
+    padding: "12px 16px",
     width: "100%",
     fontSize: "14px",
     cursor: "not-allowed",
-    marginTop: "8px",
+    marginTop: "16px",
   },
   emptyState: {
     textAlign: "center",
-    padding: "40px 20px",
+    padding: "48px 24px",
     backgroundColor: "white",
-    border: "1px solid #DBDBDB",
-    borderRadius: "8px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_LG,
     marginBottom: "16px",
-  },
-  emptyIcon: {
-    fontSize: "48px",
-    marginBottom: "16px",
+    boxShadow: theme.SHADOW_SM,
   },
   emptyText: {
-    fontSize: "16px",
+    fontSize: "18px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: "0 0 8px 0",
   },
   emptySubtext: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     margin: 0,
   },
 };

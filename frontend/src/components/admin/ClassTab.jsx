@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import theme from "../../styles/theme";
 
 function ClassTab({ classes, backend, headers, reloadClasses }) {
   const [showForm, setShowForm] = useState(false);
@@ -233,7 +234,6 @@ function ClassTab({ classes, backend, headers, reloadClasses }) {
       <div style={styles.classGrid}>
         {classes.length === 0 ? (
           <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>🏫</div>
             <p style={styles.emptyText}>등록된 반이 없습니다.</p>
             <p style={styles.emptySubtext}>
               위의 "새 반 추가 +" 버튼을 클릭하여 반을 추가하세요.
@@ -243,7 +243,6 @@ function ClassTab({ classes, backend, headers, reloadClasses }) {
           classes.map((cls) => (
             <div key={cls.class_id} style={styles.classCard}>
               <div style={styles.classCardContent}>
-                <div style={styles.classIcon}>🏫</div>
                 <div style={styles.classInfo}>
                   <h4 style={styles.className}>{cls.name}</h4>
                   <p style={styles.classDetails}>
@@ -349,21 +348,24 @@ const styles = {
     marginBottom: "20px",
   },
   sectionTitle: {
-    fontSize: "18px",
+    fontSize: "20px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: 0,
   },
   addButton: {
-    backgroundColor: "#0095F6",
+    backgroundColor: theme.MAIN_COLOR,
     color: "white",
     fontWeight: "600",
     border: "none",
-    borderRadius: "4px",
+    borderRadius: theme.ROUNDED_MD,
     padding: "8px 16px",
     fontSize: "14px",
     cursor: "pointer",
-    transition: "background-color 0.2s",
+    transition: "background-color 0.2s ease",
+    "&:hover": {
+      backgroundColor: theme.MAIN_DARK,
+    }
   },
   classGrid: {
     display: "grid",
@@ -372,31 +374,24 @@ const styles = {
     marginBottom: "32px",
   },
   classCard: {
-    border: "1px solid #DBDBDB",
-    borderRadius: "8px",
-    padding: "16px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_LG,
+    padding: "20px",
     backgroundColor: "white",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-    transition: "transform 0.2s, box-shadow 0.2s",
+    boxShadow: theme.SHADOW_SM,
+    transition: "all 0.2s ease",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
+    "&:hover": {
+      boxShadow: theme.SHADOW_MD,
+      transform: "translateY(-2px)",
+    }
   },
   classCardContent: {
     display: "flex",
     alignItems: "flex-start",
     marginBottom: "16px",
-  },
-  classIcon: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "50%",
-    backgroundColor: "#F5F5F5",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "24px",
-    marginRight: "16px",
   },
   classInfo: {
     flex: 1,
@@ -405,36 +400,40 @@ const styles = {
     margin: "0 0 8px 0",
     fontSize: "16px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
   },
   classDetails: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     margin: "0 0 4px 0",
   },
   deleteButton: {
     backgroundColor: "transparent",
-    color: "#ED4956",
-    border: "none",
-    padding: "8px",
-    borderRadius: "4px",
+    color: theme.ERROR,
+    border: `1px solid ${theme.ERROR}`,
+    padding: "8px 12px",
+    borderRadius: theme.ROUNDED_MD,
     fontSize: "13px",
     fontWeight: "600",
     cursor: "pointer",
     alignSelf: "flex-end",
-    transition: "background-color 0.2s",
+    transition: "all 0.2s ease",
+    "&:hover": {
+      backgroundColor: "rgba(237, 73, 86, 0.1)",
+    }
   },
   formContainer: {
     backgroundColor: "white",
-    border: "1px solid #DBDBDB",
-    borderRadius: "8px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_LG,
     padding: "24px",
     marginBottom: "24px",
+    boxShadow: theme.SHADOW_SM,
   },
   formTitle: {
-    fontSize: "16px",
+    fontSize: "18px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     marginTop: 0,
     marginBottom: "24px",
     textAlign: "center",
@@ -446,64 +445,70 @@ const styles = {
     display: "block",
     fontSize: "14px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     marginBottom: "8px",
   },
   formInput: {
     width: "100%",
-    padding: "10px 12px",
+    padding: "12px 14px",
     fontSize: "14px",
-    border: "1px solid #DBDBDB",
-    borderRadius: "4px",
-    backgroundColor: "#FAFAFA",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_MD,
+    backgroundColor: "#FFFFFF",
     boxSizing: "border-box",
+    transition: "border-color 0.2s ease",
+    '&:focus': {
+      borderColor: theme.MAIN_COLOR,
+      outline: "none",
+      boxShadow: `0 0 0 3px ${theme.MAIN_LIGHT}`,
+    }
   },
   submitButton: {
-    backgroundColor: "#0095F6",
+    backgroundColor: theme.MAIN_COLOR,
     color: "white",
     fontWeight: "600",
     border: "none",
-    borderRadius: "4px",
-    padding: "10px 16px",
+    borderRadius: theme.ROUNDED_MD,
+    padding: "12px 16px",
     width: "100%",
     fontSize: "14px",
     cursor: "pointer",
-    marginTop: "8px",
-    transition: "background-color 0.2s",
+    marginTop: "16px",
+    transition: "background-color 0.2s ease",
+    "&:hover": {
+      backgroundColor: theme.MAIN_DARK,
+    }
   },
   submitButtonDisabled: {
-    backgroundColor: "#B2DFFC",
+    backgroundColor: theme.NEUTRAL_BORDER,
     color: "white",
     fontWeight: "600",
     border: "none",
-    borderRadius: "4px",
-    padding: "10px 16px",
+    borderRadius: theme.ROUNDED_MD,
+    padding: "12px 16px",
     width: "100%",
     fontSize: "14px",
     cursor: "not-allowed",
-    marginTop: "8px",
+    marginTop: "16px",
   },
   emptyState: {
     gridColumn: "1 / -1",
     textAlign: "center",
     padding: "40px 20px",
     backgroundColor: "white",
-    border: "1px solid #DBDBDB",
-    borderRadius: "8px",
-  },
-  emptyIcon: {
-    fontSize: "48px",
-    marginBottom: "16px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_LG,
+    boxShadow: theme.SHADOW_SM,
   },
   emptyText: {
-    fontSize: "16px",
+    fontSize: "18px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: "0 0 8px 0",
   },
   emptySubtext: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     margin: 0,
   },
 };

@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import styles from "./chatStyles";
 import { getUserColor } from "./chatUtils";
+import theme from "../../styles/theme";
 
 function MessageList({ messages, studentId, isAdmin = false }) {
   return (
@@ -11,9 +12,9 @@ function MessageList({ messages, studentId, isAdmin = false }) {
           return (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
               style={styles.systemMessage}
             >
               {msg.message}
@@ -59,6 +60,11 @@ function MessageList({ messages, studentId, isAdmin = false }) {
           justifyContent: isMyMessage ? "flex-end" : "flex-start",
         };
 
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+          Object.assign(containerStyle, styles.mobileMessageContainer);
+        }
+
         const bubbleStyle = {
           ...styles.bubbleBase,
           ...(isMyMessage
@@ -70,54 +76,65 @@ function MessageList({ messages, studentId, isAdmin = false }) {
             : styles.bubbleOther),
         };
 
+        if (isMobile) {
+          Object.assign(bubbleStyle, styles.mobileBubble);
+        }
+
+        const avatarStyle = {
+          ...styles.avatar,
+          ...(isMobile ? styles.mobileAvatar : {}),
+          ...(isGPT ? styles.gptAvatar : {})
+        };
+
+        const avatarEmoji = isGPT ? "🤖" : "👤";
+
         return (
           <motion.div
             key={index}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
             style={containerStyle}
           >
-            {msg.sender_id !== studentId && (
-              <div style={styles.avatar}>👤</div>
+            {!isMyMessage && (
+              <div style={avatarStyle}>{avatarEmoji}</div>
             )}
             <div style={bubbleStyle}>
               <div
                 style={{
                   ...styles.senderLabel,
-                  color: getUserColor(msg.sender_id),
+                  color: isGPT ? "#0073E6" : theme.NEUTRAL_TEXT,
                   textAlign: isMyMessage ? "right" : "left",
                 }}
               >
                 {sender}
               </div>
 
-              {/* 🤫 GPT 귓속말 라벨 */}
               {isWhisper && (
                 <div style={{
-                  ...styles.whisperLabel,
-                  padding: "4px 8px",
-                  backgroundColor: "#FFF3D9",
-                  borderRadius: "4px",
-                  display: "inline-block"
+                  ...styles.badgeBase,
+                  ...styles.whisperBadge,
                 }}>
-                  🤫 GPT가 {studentId}님에게만 보내는 메시지
+                  🤫 {studentId}님에게만
                 </div>
               )}
 
-              {/* 💬 GPT 질문 표시 */}
               {msg.is_gpt_question && (
-                <div style={{ color: "#0095F6", fontWeight: "600", marginBottom: "4px", fontSize: "12px" }}>
-                  [GPT에게 질문]
+                <div style={{
+                  ...styles.badgeBase,
+                  ...styles.gptBadge,
+                }}>
+                  GPT에게 질문
                 </div>
               )}
 
-              <div>{msg.message}</div>
+              <div style={{ lineHeight: 1.5 }}>{msg.message}</div>
               
-              {/* 🧠 관리자에게만 reasoning 표시 */}
               {isAdmin && isGPT && msg.reasoning && (
                 <div style={styles.reasoningContainer}>
-                  <div style={styles.reasoningTitle}>GPT 판단 이유:</div>
+                  <div style={styles.reasoningTitle}>
+                    <span>🧠</span> GPT 판단 이유:
+                  </div>
                   <div style={styles.reasoningText}>{msg.reasoning}</div>
                 </div>
               )}
@@ -133,8 +150,8 @@ function MessageList({ messages, studentId, isAdmin = false }) {
                 </div>
               )}
             </div>
-            {msg.sender_id === studentId && (
-              <div style={styles.avatar}>👤</div>
+            {isMyMessage && (
+              <div style={avatarStyle}>{avatarEmoji}</div>
             )}
           </motion.div>
         );

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
+import theme from "../../styles/theme";
 
 function StudentTab({ backend, headers, classId }) {
   const [students, setStudents] = useState([]);
   const [showPassword, setShowPassword] = useState({});
-  const [selectedStudents, setSelectedStudents] = useState([]);
-  const [isAllSelected, setIsAllSelected] = useState(false);
 
   useEffect(() => {
     fetch(`${backend}/students?class_id=eq.${classId}`, { headers })
@@ -26,27 +25,6 @@ function StudentTab({ backend, headers, classId }) {
       ...showPassword,
       [studentId]: !showPassword[studentId]
     });
-  };
-
-  const toggleSelectAll = () => {
-    if (isAllSelected) {
-      setSelectedStudents([]);
-    } else {
-      setSelectedStudents(students.map(s => s.student_id));
-    }
-    setIsAllSelected(!isAllSelected);
-  };
-
-  const toggleSelectStudent = (studentId) => {
-    if (selectedStudents.includes(studentId)) {
-      setSelectedStudents(selectedStudents.filter(id => id !== studentId));
-      setIsAllSelected(false);
-    } else {
-      setSelectedStudents([...selectedStudents, studentId]);
-      if (selectedStudents.length + 1 === students.length) {
-        setIsAllSelected(true);
-      }
-    }
   };
 
   const updateStudent = async (id) => {
@@ -87,36 +65,19 @@ function StudentTab({ backend, headers, classId }) {
     <div style={styles.container}>
       <div style={styles.header}>
         <h3 style={styles.title}>클래스 학생 관리</h3>
-        <div style={styles.actions}>
-          <button 
-            style={styles.selectAllButton}
-            onClick={toggleSelectAll}
-          >
-            {isAllSelected ? '전체 선택 해제' : '전체 선택'}
-          </button>
-        </div>
       </div>
 
       <div style={styles.studentList}>
         {students.map((student) => (
           <div key={student.student_id} style={styles.studentCard}>
             <div style={styles.studentHeader}>
-              <input
-                type="checkbox"
-                checked={selectedStudents.includes(student.student_id)}
-                onChange={() => toggleSelectStudent(student.student_id)}
-                style={styles.checkbox}
-              />
               <div style={styles.avatar}>
                 {student.student_id.replace(/[^\d]/g, '')}
               </div>
+              <span style={styles.studentId}>{student.student_id}</span>
             </div>
             
             <div style={styles.studentBody}>
-              <div style={styles.idField}>
-                <span style={styles.studentId}>{student.student_id}</span>
-              </div>
-              
               <div style={styles.fieldGroup}>
                 <label style={styles.label}>이름</label>
                 <input 
@@ -166,72 +127,55 @@ function StudentTab({ backend, headers, classId }) {
 const styles = {
   container: {
     backgroundColor: "#FFFFFF",
-    borderRadius: "4px",
-    padding: "16px",
+    borderRadius: "8px",
+    padding: "0",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "16px",
-    borderBottom: "1px solid #DBDBDB",
+    marginBottom: "20px",
+    borderBottom: `1px solid ${theme.NEUTRAL_BORDER}`,
     paddingBottom: "16px",
   },
   title: {
-    fontSize: "18px",
+    fontSize: "20px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: "0",
-  },
-  actions: {
-    display: "flex",
-    gap: "8px",
-  },
-  selectAllButton: {
-    backgroundColor: "transparent",
-    color: "#0095F6",
-    border: "none",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    padding: "8px",
   },
   studentList: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-    gap: "16px",
+    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+    gap: "20px",
   },
   studentCard: {
-    border: "1px solid #DBDBDB",
-    borderRadius: "8px",
-    backgroundColor: "#FAFAFA",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: "10px",
+    backgroundColor: "#FFFFFF",
     overflow: "hidden",
-    padding: "16px",
+    padding: "20px",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
-    transition: "transform 0.2s, box-shadow 0.2s",
+    gap: "16px",
+    transition: "all 0.2s ease",
+    boxShadow: theme.SHADOW_SM,
     ":hover": {
+      boxShadow: theme.SHADOW_MD,
       transform: "translateY(-2px)",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
     },
   },
   studentHeader: {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-  },
-  checkbox: {
-    width: "18px",
-    height: "18px",
-    accentColor: "#0095F6",
-    cursor: "pointer",
+    marginBottom: "6px",
   },
   avatar: {
     width: "40px",
     height: "40px",
     borderRadius: "50%",
-    backgroundColor: "#0095F6",
+    backgroundColor: theme.MAIN_COLOR,
     color: "#FFFFFF",
     display: "flex",
     alignItems: "center",
@@ -239,38 +183,39 @@ const styles = {
     fontSize: "16px",
     fontWeight: "600",
   },
-  studentBody: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  idField: {
-    marginBottom: "4px",
-  },
   studentId: {
     fontSize: "16px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
+  },
+  studentBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
   },
   fieldGroup: {
     display: "flex",
     flexDirection: "column",
-    gap: "4px",
+    gap: "8px",
   },
   label: {
-    fontSize: "12px",
-    color: "#8E8E8E",
+    fontSize: "14px",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     fontWeight: "600",
   },
   input: {
-    padding: "10px 12px",
+    padding: "12px 14px",
     fontSize: "14px",
-    border: "1px solid #DBDBDB",
-    borderRadius: "4px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: "6px",
     backgroundColor: "#FFFFFF",
     outline: "none",
     width: "100%",
     boxSizing: "border-box",
+    transition: "border-color 0.2s ease",
+    ":focus": {
+      borderColor: theme.MAIN_COLOR,
+    },
   },
   passwordField: {
     position: "relative",
@@ -279,15 +224,21 @@ const styles = {
   },
   passwordToggle: {
     position: "absolute",
-    right: "8px",
+    right: "12px",
     top: "50%",
     transform: "translateY(-50%)",
     border: "none",
     background: "transparent",
-    color: "#0095F6",
-    fontSize: "12px",
+    color: theme.MAIN_COLOR,
+    fontSize: "13px",
     fontWeight: "600",
     cursor: "pointer",
+    padding: "4px 8px",
+    borderRadius: "4px",
+    transition: "background-color 0.2s ease",
+    ":hover": {
+      backgroundColor: theme.MAIN_LIGHT,
+    },
   },
   studentFooter: {
     display: "flex",
@@ -295,17 +246,17 @@ const styles = {
     marginTop: "8px",
   },
   saveButton: {
-    backgroundColor: "#0095F6",
+    backgroundColor: theme.MAIN_COLOR,
     color: "#FFFFFF",
     border: "none",
-    padding: "8px 16px",
-    borderRadius: "4px",
+    padding: "10px 16px",
+    borderRadius: "6px",
     fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
     transition: "background-color 0.2s",
     ":hover": {
-      backgroundColor: "#1877F2",
+      backgroundColor: theme.MAIN_DARK,
     },
   },
 };

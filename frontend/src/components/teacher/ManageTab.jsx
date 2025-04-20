@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import theme from "../../styles/theme";
 
 function ManageTab({ backend, headers, classId }) {
   const [topics, setTopics] = useState([]);
@@ -68,7 +69,7 @@ function ManageTab({ backend, headers, classId }) {
         headers: { ...headers, Prefer: "return=representation" },
         body: JSON.stringify({ system_prompt: newPrompt }),
       });
-      alert("✅ 시스템 프롬프트 수정 완료!");
+      alert("✅ 시스템 프롬프트가 수정되었습니다.");
       
       // 상태 업데이트
       setTopics(topics.map(topic => 
@@ -78,7 +79,7 @@ function ManageTab({ backend, headers, classId }) {
       ));
     } catch (error) {
       console.error("프롬프트 업데이트 중 오류 발생:", error);
-      alert("❌ 프롬프트 수정 실패!");
+      alert("❌ 프롬프트 수정에 실패했습니다.");
     }
   };
 
@@ -90,13 +91,13 @@ function ManageTab({ backend, headers, classId }) {
     try {
       await fetch(`${backend}/messages?room_id=eq.${roomId}`, { method: "DELETE", headers });
       await fetch(`${backend}/rooms?room_id=eq.${roomId}`, { method: "DELETE", headers });
-      alert("✅ 채팅방 삭제 완료!");
+      alert("✅ 채팅방이 삭제되었습니다.");
       
       // 상태 직접 업데이트
       setRooms(rooms.filter(room => room.room_id !== roomId));
     } catch (error) {
       console.error("채팅방 삭제 중 오류 발생:", error);
-      alert("❌ 채팅방 삭제 실패!");
+      alert("❌ 채팅방 삭제에 실패했습니다.");
     }
   };
 
@@ -145,7 +146,7 @@ function ManageTab({ backend, headers, classId }) {
       
       {topics.length === 0 ? (
         <div style={styles.emptyState}>
-          <div style={styles.emptyIcon}>📝</div>
+          <div style={styles.emptyIcon}>🫐</div>
           <p style={styles.emptyText}>아직 생성된 채팅방이 없습니다.</p>
           <p style={styles.emptySubtext}>
             '채팅방 생성' 탭에서 새 채팅방을 만들어보세요.
@@ -196,7 +197,7 @@ function ManageTab({ backend, headers, classId }) {
                       <h5 style={styles.roomsTitle}>채팅방 목록</h5>
                       {getSortedRooms(topic.topic_id).map((room) => (
                         <div key={room.room_id} style={styles.roomItem}>
-                          <div style={styles.roomIcon}>💬</div>
+                          <div style={styles.roomIcon}>🫐</div>
                           <span style={styles.roomTitle}>{room.title}</span>
                           <button 
                             onClick={() => deleteRoom(room.room_id, room.title)} 
@@ -220,68 +221,79 @@ function ManageTab({ backend, headers, classId }) {
 const styles = {
   container: {
     backgroundColor: "#FFFFFF",
-    borderRadius: "8px",
-    padding: "16px",
+    borderRadius: theme.ROUNDED_LG,
+    padding: "24px",
+    boxShadow: theme.SHADOW_SM,
   },
   title: {
     fontSize: "20px",
     fontWeight: "600",
-    color: "#262626",
-    marginBottom: "16px",
-    borderBottom: "1px solid #DBDBDB",
+    color: theme.NEUTRAL_TEXT,
+    marginBottom: "24px",
+    borderBottom: `1px solid ${theme.NEUTRAL_BORDER}`,
     paddingBottom: "16px",
   },
   loading: {
     padding: "24px",
     textAlign: "center",
-    color: "#8E8E8E",
-    fontSize: "14px",
+    color: theme.NEUTRAL_LIGHT_TEXT,
+    fontSize: "15px",
   },
   emptyState: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    padding: "40px 16px",
-    backgroundColor: "#FAFAFA",
-    borderRadius: "8px",
-    border: "1px solid #DBDBDB",
+    padding: "48px 24px",
+    backgroundColor: "#F9F9FB",
+    borderRadius: theme.ROUNDED_MD,
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
   },
   emptyIcon: {
     fontSize: "48px",
     marginBottom: "16px",
+    color: theme.MAIN_COLOR,
   },
   emptyText: {
-    fontSize: "16px",
+    fontSize: "18px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: "0 0 8px 0",
   },
   emptySubtext: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     margin: "0",
     textAlign: "center",
   },
   topicList: {
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
+    gap: "20px",
   },
   topicCard: {
-    border: "1px solid #DBDBDB",
-    borderRadius: "8px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_LG,
     overflow: "hidden",
     backgroundColor: "#FFFFFF",
+    transition: "all 0.2s ease",
+    boxShadow: theme.SHADOW_XS,
+    '&:hover': {
+      boxShadow: theme.SHADOW_MD,
+    }
   },
   topicHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "16px",
-    backgroundColor: "#FAFAFA",
-    borderBottom: "1px solid #DBDBDB",
+    padding: "16px 20px",
+    backgroundColor: "#F9F9FB",
+    borderBottom: `1px solid ${theme.NEUTRAL_BORDER}`,
     cursor: "pointer",
+    transition: "background-color 0.2s ease",
+    '&:hover': {
+      backgroundColor: "#F0F0F5",
+    }
   },
   topicInfo: {
     display: "flex",
@@ -290,90 +302,113 @@ const styles = {
   topicTitle: {
     fontSize: "16px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: "0 0 4px 0",
   },
   roomCount: {
     fontSize: "12px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
+    display: "flex",
+    alignItems: "center",
   },
   expandIcon: {
-    color: "#8E8E8E",
-    fontSize: "12px",
+    color: theme.MAIN_COLOR,
+    fontSize: "14px",
+    transition: "transform 0.3s ease",
   },
   topicContent: {
-    padding: "16px",
+    padding: "20px",
   },
   promptSection: {
-    marginBottom: "16px",
+    marginBottom: "20px",
   },
   promptLabel: {
     display: "block",
     fontSize: "14px",
     fontWeight: "600",
-    color: "#262626",
-    marginBottom: "8px",
+    color: theme.NEUTRAL_TEXT,
+    marginBottom: "10px",
   },
   textarea: {
     width: "100%",
-    minHeight: "100px",
-    padding: "12px",
+    minHeight: "120px",
+    padding: "14px",
     fontSize: "14px",
-    border: "1px solid #DBDBDB",
-    borderRadius: "4px",
-    backgroundColor: "#FAFAFA",
-    marginBottom: "8px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_MD,
+    backgroundColor: "#FFFFFF",
+    marginBottom: "12px",
     resize: "vertical",
     boxSizing: "border-box",
     fontFamily: "inherit",
+    transition: "border-color 0.2s ease",
+    '&:focus': {
+      borderColor: theme.MAIN_COLOR,
+      outline: "none",
+      boxShadow: `0 0 0 3px ${theme.MAIN_LIGHT}`,
+    }
   },
   updateButton: {
-    backgroundColor: "#0095F6",
+    backgroundColor: theme.MAIN_COLOR,
     color: "#FFFFFF",
     border: "none",
-    borderRadius: "4px",
-    padding: "8px 16px",
+    borderRadius: theme.ROUNDED_MD,
+    padding: "10px 16px",
     fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
-    transition: "background-color 0.2s",
+    transition: "background-color 0.2s ease",
+    '&:hover': {
+      backgroundColor: theme.MAIN_DARK,
+    }
   },
   roomsSection: {
-    marginTop: "16px",
-    borderTop: "1px solid #EFEFEF",
-    paddingTop: "16px",
+    marginTop: "20px",
+    borderTop: `1px solid ${theme.NEUTRAL_BORDER}`,
+    paddingTop: "20px",
   },
   roomsTitle: {
-    fontSize: "14px",
+    fontSize: "16px",
     fontWeight: "600",
-    color: "#262626",
-    margin: "0 0 12px 0",
+    color: theme.NEUTRAL_TEXT,
+    margin: "0 0 16px 0",
   },
   roomItem: {
     display: "flex",
     alignItems: "center",
-    padding: "12px",
-    borderRadius: "4px",
-    backgroundColor: "#FAFAFA",
+    padding: "12px 16px",
+    borderRadius: theme.ROUNDED_MD,
+    backgroundColor: "#F9F9FB",
     marginBottom: "8px",
+    transition: "all 0.2s ease",
+    '&:hover': {
+      backgroundColor: "#F0F0F5",
+    }
   },
   roomIcon: {
-    marginRight: "12px",
+    marginRight: "14px",
     fontSize: "16px",
+    color: theme.MAIN_COLOR,
   },
   roomTitle: {
     flex: 1,
     fontSize: "14px",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
+    fontWeight: "500",
   },
   deleteButton: {
     backgroundColor: "transparent",
-    color: "#ED4956",
-    border: "none",
-    fontSize: "12px",
+    color: theme.ERROR,
+    border: `1px solid ${theme.ERROR}`,
+    fontSize: "13px",
     fontWeight: "600",
     cursor: "pointer",
-    padding: "4px 8px",
+    padding: "6px 12px",
+    borderRadius: theme.ROUNDED_MD,
+    transition: "all 0.2s ease",
+    '&:hover': {
+      backgroundColor: "rgba(237, 73, 86, 0.1)",
+    }
   },
 };
 

@@ -2,6 +2,11 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
+// 메인 색상 상수 정의
+const MAIN_COLOR = "rgb(130, 124, 209)";
+const LIGHT_MAIN_COLOR = "rgba(130, 124, 209, 0.1)";
+const HOVER_COLOR = "rgb(117, 111, 189)";
+
 function LoginSelection() {
   const navigate = useNavigate();
 
@@ -39,7 +44,7 @@ function LoginSelection() {
 
         <div style={styles.buttonContainer}>
           <motion.button
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.02, backgroundColor: HOVER_COLOR }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate("/student-login")}
             style={styles.primaryButton}
@@ -54,7 +59,7 @@ function LoginSelection() {
           </div>
 
           <motion.button
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.02, backgroundColor: LIGHT_MAIN_COLOR, color: HOVER_COLOR }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate("/teacher-login")}
             style={styles.secondaryButton}
@@ -63,7 +68,7 @@ function LoginSelection() {
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.02, backgroundColor: LIGHT_MAIN_COLOR, color: HOVER_COLOR }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate("/admin-login")}
             style={styles.secondaryButton}
@@ -86,7 +91,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "#FAFAFA",
+    background: LIGHT_MAIN_COLOR,
     padding: "1rem",
     fontFamily: "'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   },
@@ -95,8 +100,9 @@ const styles = {
     width: "100%",
     padding: "40px",
     backgroundColor: "#FFFFFF",
-    borderRadius: "1px",
-    border: "1px solid #DBDBDB",
+    borderRadius: "12px",
+    boxShadow: "0 4px 12px rgba(130, 124, 209, 0.15)",
+    border: "1px solid rgba(130, 124, 209, 0.2)",
     textAlign: "center",
     display: "flex",
     flexDirection: "column",
@@ -119,15 +125,15 @@ const styles = {
     marginBottom: "12px",
   },
   title: {
-    fontSize: "24px",
-    fontWeight: "600",
-    color: "#262626",
+    fontSize: "28px",
+    fontWeight: "700",
+    color: MAIN_COLOR,
     margin: "0",
   },
   subtitle: {
-    fontSize: "14px",
-    color: "#8E8E8E",
-    marginBottom: "24px",
+    fontSize: "15px",
+    color: "#666",
+    marginBottom: "28px",
     padding: "0 12px",
     lineHeight: "1.4",
   },
@@ -135,30 +141,32 @@ const styles = {
     width: "100%",
     display: "flex",
     flexDirection: "column",
-    gap: "8px",
+    gap: "10px",
   },
   primaryButton: {
     width: "100%",
-    padding: "8px 0",
-    backgroundColor: "#0095F6",
+    padding: "12px 0",
+    backgroundColor: MAIN_COLOR,
     color: "#FFFFFF",
     border: "none",
-    borderRadius: "4px",
-    fontSize: "14px",
+    borderRadius: "8px",
+    fontSize: "15px",
     fontWeight: "600",
     cursor: "pointer",
     marginTop: "8px",
+    transition: "background-color 0.2s ease",
   },
   secondaryButton: {
     width: "100%",
-    padding: "8px 0",
+    padding: "12px 0",
     backgroundColor: "transparent",
-    color: "#0095F6",
-    border: "1px solid #0095F6",
-    borderRadius: "4px",
-    fontSize: "14px",
+    color: MAIN_COLOR,
+    border: `1px solid ${MAIN_COLOR}`,
+    borderRadius: "8px",
+    fontSize: "15px",
     fontWeight: "600",
     cursor: "pointer",
+    transition: "all 0.2s ease",
   },
   divider: {
     display: "flex",
@@ -169,12 +177,12 @@ const styles = {
   dividerLine: {
     flex: 1,
     height: "1px",
-    backgroundColor: "#DBDBDB",
+    backgroundColor: "rgba(130, 124, 209, 0.3)",
   },
   dividerText: {
-    color: "#8E8E8E",
+    color: "#888",
     fontSize: "13px",
-    fontWeight: "600",
+    fontWeight: "500",
     margin: "0 16px",
   },
   footer: {
@@ -183,7 +191,7 @@ const styles = {
   },
   footerText: {
     fontSize: "12px",
-    color: "#8E8E8E",
+    color: "#888",
     margin: "0",
   },
 };

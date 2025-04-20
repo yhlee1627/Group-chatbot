@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import SectionTitle from "./shared/SectionTitle";
 import ClassDropdown from "./shared/ClassDropdown";
+import theme from "../../styles/theme";
 
 function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassId, topics }) {
   const [rooms, setRooms] = useState([]);
@@ -32,7 +33,14 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
         return;
       }
 
-      setRooms(data);
+      // 생성 날짜를 기준으로 내림차순 정렬 (최신순)
+      const sortedData = data.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
+        return dateB - dateA;
+      });
+
+      setRooms(sortedData);
     } catch (err) {
       console.error("❌ 채팅방 불러오기 오류:", err);
       setRooms([]);
@@ -117,6 +125,15 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
       }
     });
     
+    // 각 주제 내에서 채팅방을 날짜순으로 정렬
+    Object.keys(roomsByTopic).forEach(topicId => {
+      roomsByTopic[topicId].rooms.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
+        return dateB - dateA; // 내림차순 (최신순)
+      });
+    });
+    
     return roomsByTopic;
   };
   
@@ -128,13 +145,30 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
     if (!dateString) return '날짜 없음';
     
     const date = new Date(dateString);
-    return date.toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    
+    // 날짜 형식: YYYY-MM-DD HH:MM
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  };
+  
+  // 간단한 날짜 표시 (목록용)
+  const formatShortDate = (dateString) => {
+    if (!dateString) return '날짜 없음';
+    
+    const date = new Date(dateString);
+    
+    // 날짜 형식: MM-DD HH:MM
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${month}-${day} ${hours}:${minutes}`;
   };
 
   // 주제별 그룹화된 채팅방 데이터
@@ -156,7 +190,6 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
 
       {rooms.length === 0 ? (
         <div style={styles.emptyState}>
-          <div style={styles.emptyIcon}>📚</div>
           <p style={styles.emptyText}>채팅방이 없습니다.</p>
           <p style={styles.emptySubtext}>
             {selectedClassId ? 
@@ -170,7 +203,6 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
             topicData.rooms.length > 0 && (
               <div key={topicId} style={styles.topicGroup}>
                 <div style={styles.topicHeader}>
-                  <div style={styles.topicIcon}>📋</div>
                   <h3 style={styles.topicTitle}>{topicData.topicName}</h3>
                   <div style={styles.roomCount}>{topicData.rooms.length}개의 방</div>
                 </div>
@@ -182,7 +214,6 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
                         style={styles.roomHeader}
                         onClick={() => toggleRoomExpand(room.room_id)}
                       >
-                        <div style={styles.roomIcon}>💬</div>
                         <div style={styles.roomInfo}>
                           <h4 style={styles.roomTitle}>{room.title || "제목 없음"}</h4>
                           <div style={styles.roomMeta}>
@@ -192,7 +223,7 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
                               </span>
                             )}
                             <span style={styles.createdAt}>
-                              {formatDate(room.created_at).split(' ')[0]}
+                              {formatShortDate(room.created_at)}
                             </span>
                           </div>
                         </div>
@@ -216,7 +247,7 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
                             style={styles.deleteButton}
                             disabled={isDeleting}
                           >
-                            🗑️ 채팅방 삭제
+                            채팅방 삭제
                           </button>
                         </div>
                       )}
@@ -234,13 +265,14 @@ function RoomTab({ backend, headers, classes, selectedClassId, setSelectedClassI
 
 const styles = {
   container: {
-    padding: "10px",
-    backgroundColor: "#FAFAFA",
-    borderRadius: "8px",
+    padding: "20px",
+    backgroundColor: "#FFFFFF",
+    borderRadius: theme.ROUNDED_LG,
     width: "100%",
+    boxShadow: theme.SHADOW_SM,
   },
   header: {
-    marginBottom: "20px",
+    marginBottom: "24px",
   },
   controlPanel: {
     display: "flex",
@@ -258,42 +290,36 @@ const styles = {
   },
   topicGroup: {
     backgroundColor: "white",
-    borderRadius: "8px",
-    border: "1px solid #DBDBDB",
+    borderRadius: theme.ROUNDED_LG,
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
     overflow: "hidden",
+    boxShadow: theme.SHADOW_XS,
+    transition: "all 0.2s ease",
+    "&:hover": {
+      boxShadow: theme.SHADOW_SM,
+    }
   },
   topicHeader: {
     display: "flex",
     alignItems: "center",
-    padding: "16px",
-    backgroundColor: "#F5F5F5",
-    borderBottom: "1px solid #DBDBDB",
-  },
-  topicIcon: {
-    width: "32px",
-    height: "32px",
-    borderRadius: "50%",
-    backgroundColor: "white",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "16px",
-    marginRight: "12px",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+    padding: "20px 24px",
+    backgroundColor: "#F9F9FB",
+    borderBottom: `1px solid ${theme.NEUTRAL_BORDER}`,
   },
   topicTitle: {
     fontSize: "16px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: 0,
     flex: 1,
   },
   roomCount: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     backgroundColor: "white",
     borderRadius: "16px",
-    padding: "4px 8px",
+    padding: "4px 10px",
+    boxShadow: theme.SHADOW_XS,
   },
   // 채팅방 스타일
   roomGrid: {
@@ -301,27 +327,19 @@ const styles = {
     flexDirection: "column",
   },
   roomCard: {
-    borderBottom: "1px solid #EFEFEF",
+    borderBottom: `1px solid ${theme.NEUTRAL_BORDER}`,
     backgroundColor: "white",
     transition: "background-color 0.2s ease",
   },
   roomHeader: {
     display: "flex",
     alignItems: "center",
-    padding: "16px",
+    padding: "16px 24px",
     cursor: "pointer",
     position: "relative",
-  },
-  roomIcon: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    backgroundColor: "#F5F5F5",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "18px",
-    marginRight: "12px",
+    "&:hover": {
+      backgroundColor: "#F9F9FB",
+    }
   },
   roomInfo: {
     flex: 1,
@@ -329,7 +347,7 @@ const styles = {
   roomTitle: {
     fontSize: "16px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: "0 0 4px 0",
   },
   roomMeta: {
@@ -339,72 +357,74 @@ const styles = {
   },
   createdAt: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
   },
   groupTag: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_TEXT,
     backgroundColor: "#F5F5F5",
-    padding: "2px 4px",
-    borderRadius: "4px",
+    padding: "2px 8px",
+    borderRadius: theme.ROUNDED_SM,
+    fontWeight: "500",
   },
   expandIcon: {
-    color: "#8E8E8E",
-    fontSize: "12px",
+    color: theme.MAIN_COLOR,
+    fontSize: "14px",
+    transition: "transform 0.3s ease",
   },
   roomDetails: {
-    padding: "16px",
-    borderTop: "1px solid #EFEFEF",
-    backgroundColor: "#FAFAFA",
+    padding: "16px 24px",
+    borderTop: `1px solid ${theme.NEUTRAL_BORDER}`,
+    backgroundColor: "#F9F9FB",
   },
   detailItem: {
     display: "flex",
-    margin: "0 0 8px 0",
+    margin: "0 0 12px 0",
   },
   detailLabel: {
     width: "80px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     fontSize: "14px",
   },
   detailValue: {
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     fontSize: "14px",
     fontWeight: "500",
   },
   deleteButton: {
     width: "100%",
     backgroundColor: "transparent",
-    color: "#ED4956",
-    border: "1px solid #ED4956",
-    borderRadius: "4px",
-    padding: "8px 12px",
+    color: theme.ERROR,
+    border: `1px solid ${theme.ERROR}`,
+    borderRadius: theme.ROUNDED_MD,
+    padding: "10px 16px",
     fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
-    marginTop: "8px",
-    transition: "background-color 0.2s",
+    marginTop: "16px",
+    transition: "all 0.2s ease",
+    "&:hover": {
+      backgroundColor: "rgba(237, 73, 86, 0.1)",
+    }
   },
   emptyState: {
     textAlign: "center",
-    padding: "40px 20px",
+    padding: "48px 24px",
     backgroundColor: "white",
-    border: "1px solid #DBDBDB",
-    borderRadius: "8px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_LG,
     marginBottom: "16px",
-  },
-  emptyIcon: {
-    fontSize: "48px",
-    marginBottom: "16px",
+    boxShadow: theme.SHADOW_SM,
   },
   emptyText: {
-    fontSize: "16px",
+    fontSize: "18px",
     fontWeight: "600",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
     margin: "0 0 8px 0",
   },
   emptySubtext: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     margin: 0,
   },
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import theme from "../styles/theme";
 
 function StudentDashboard() {
   const [rooms, setRooms] = useState([]);
@@ -196,10 +197,25 @@ function StudentDashboard() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h2 style={styles.title}>채팅방</h2>
+        <h2 style={styles.title}>
+          <img 
+            src="/images/berry-icon.png" 
+            alt="BerryChat" 
+            style={styles.headerLogo}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              document.getElementById('headerFallbackLogo').style.display = 'inline';
+            }}
+          />
+          <span id="headerFallbackLogo" style={{display: 'none', marginRight: '8px'}}>🫐</span>
+          채팅방
+        </h2>
         <div style={styles.buttonGroup}>
           <button onClick={openSidebar} style={styles.profileButton}>
-            <span style={styles.profileIcon}>👤</span>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 13.75C12.0711 13.75 13.75 12.0711 13.75 10C13.75 7.92893 12.0711 6.25 10 6.25C7.92893 6.25 6.25 7.92893 6.25 10C6.25 12.0711 7.92893 13.75 10 13.75Z" stroke={theme.MAIN_COLOR} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M8.14874 4.10377L8.49997 2.5H11.5L11.8512 4.10377C12.0629 4.75228 12.5798 5.24326 13.1771 5.43907C13.7745 5.63489 14.4242 5.51634 14.9167 5.125L16.25 4.16667L18.0833 7.5L16.9083 8.33333C16.3982 8.68041 16.0911 9.27605 16.0911 9.9096C16.0911 10.5431 16.3982 11.1388 16.9083 11.4858L18.0833 12.5L16.25 15.8333L14.9167 14.875C14.4242 14.4837 13.7745 14.3651 13.1771 14.5609C12.5798 14.7567 12.0629 15.2477 11.8512 15.8962L11.5 17.5H8.49997L8.14874 15.8962C7.93711 15.2477 7.42022 14.7567 6.82287 14.5609C6.22552 14.3651 5.57575 14.4837 5.08331 14.875L3.74997 15.8333L1.91664 12.5L3.09164 11.4858C3.60172 11.1388 3.90884 10.5431 3.90884 9.9096C3.90884 9.27605 3.60172 8.68041 3.09164 8.33333L1.91664 7.5L3.74997 4.16667L5.08331 5.125C5.57575 5.51634 6.22552 5.63489 6.82287 5.43907C7.42022 5.24326 7.93711 4.75228 8.14874 4.10377Z" stroke={theme.MAIN_COLOR} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
           <button onClick={handleLogout} style={styles.logoutButtonHeader}>
             로그아웃
@@ -232,7 +248,7 @@ function StudentDashboard() {
                     </div>
                     <button style={styles.joinButton}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8 5L15 12L8 19" stroke="#0095F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8 5L15 12L8 19" stroke={theme.MAIN_COLOR} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
                   </div>
@@ -251,7 +267,10 @@ function StudentDashboard() {
             <div style={styles.sidebarHeader}>
               <h3 style={styles.sidebarTitle}>내 프로필</h3>
               <button onClick={() => setShowSidebar(false)} style={styles.closeButton}>
-                ✕
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 4L4 12" stroke={theme.NEUTRAL_TEXT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M4 4L12 12" stroke={theme.NEUTRAL_TEXT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
             </div>
 
@@ -325,15 +344,15 @@ function StudentDashboard() {
   );
 }
 
-// 인스타그램 스타일 정의
+// 블루베리 테마 스타일 정의
 const styles = {
   container: {
     maxWidth: "935px",
     margin: "0 auto",
     padding: "20px",
     fontFamily: "'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    color: "#262626",
-    backgroundColor: "#FAFAFA",
+    color: theme.NEUTRAL_TEXT,
+    backgroundColor: theme.MAIN_LIGHT,
     minHeight: "100vh",
   },
   header: {
@@ -341,13 +360,22 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "16px 0",
-    borderBottom: "1px solid #DBDBDB",
+    borderBottom: `1px solid ${theme.MAIN_COLOR}`,
     marginBottom: "24px",
   },
+  headerLogo: {
+    width: "28px",
+    height: "28px",
+    marginRight: "10px",
+    verticalAlign: "middle",
+  },
   title: {
-    fontSize: "20px",
+    fontSize: "24px",
     fontWeight: "600",
     margin: "0",
+    color: theme.MAIN_COLOR,
+    display: "flex",
+    alignItems: "center",
   },
   buttonGroup: {
     display: "flex",
@@ -355,17 +383,32 @@ const styles = {
     alignItems: "center",
   },
   profileButton: {
-    backgroundColor: "transparent",
-    border: "none",
-    cursor: "pointer",
-    padding: "8px",
-    borderRadius: "50%",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "transparent",
+    color: theme.MAIN_COLOR,
+    border: `1px solid ${theme.MAIN_COLOR}`,
+    borderRadius: theme.ROUNDED_FULL,
+    padding: "10px",
+    width: "40px",
+    height: "40px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
   },
-  profileIcon: {
-    fontSize: "20px",
+  logoutButtonHeader: {
+    backgroundColor: "transparent",
+    color: theme.MAIN_COLOR,
+    border: `1px solid ${theme.MAIN_COLOR}`,
+    borderRadius: theme.ROUNDED_MD,
+    padding: "8px 16px",
+    fontSize: "14px",
+    cursor: "pointer",
+    fontWeight: "600",
+    transition: "all 0.2s ease",
+    ":hover": {
+      backgroundColor: theme.MAIN_LIGHT,
+    }
   },
   content: {
     display: "flex",
@@ -374,9 +417,10 @@ const styles = {
   },
   topicContainer: {
     backgroundColor: "#FFFFFF",
-    borderRadius: "8px",
-    border: "1px solid #DBDBDB",
+    borderRadius: theme.ROUNDED_LG,
+    border: `1px solid rgba(130, 124, 209, 0.2)`,
     overflow: "hidden",
+    boxShadow: theme.SHADOW_SM,
   },
   topicTitle: {
     fontSize: "16px",
@@ -384,13 +428,15 @@ const styles = {
     padding: "16px",
     margin: "0",
     borderBottom: "1px solid #EFEFEF",
+    color: theme.MAIN_COLOR,
+    backgroundColor: "rgba(130, 124, 209, 0.05)",
   },
   roomList: {
     display: "flex",
     flexDirection: "column",
   },
   roomCard: {
-    padding: "12px 16px",
+    padding: "16px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -398,6 +444,9 @@ const styles = {
     cursor: "pointer",
     transition: "background-color 0.2s",
     backgroundColor: "#FFFFFF",
+    ":hover": {
+      backgroundColor: "rgba(130, 124, 209, 0.05)",
+    }
   },
   roomInfo: {
     display: "flex",
@@ -407,8 +456,8 @@ const styles = {
   roomAvatar: {
     width: "48px",
     height: "48px",
-    borderRadius: "50%",
-    backgroundColor: "#EFEFEF",
+    borderRadius: theme.ROUNDED_FULL,
+    backgroundColor: theme.MAIN_LIGHT,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -419,13 +468,14 @@ const styles = {
     flexDirection: "column",
   },
   roomTitle: {
-    fontSize: "14px",
+    fontSize: "15px",
     fontWeight: "600",
     marginBottom: "4px",
+    color: theme.NEUTRAL_TEXT,
   },
   roomSubtitle: {
-    fontSize: "12px",
-    color: "#8E8E8E",
+    fontSize: "13px",
+    color: theme.NEUTRAL_LIGHT_TEXT,
   },
   joinButton: {
     backgroundColor: "transparent",
@@ -443,16 +493,17 @@ const styles = {
     justifyContent: "center",
     padding: "64px 24px",
     backgroundColor: "#FFFFFF",
-    borderRadius: "8px",
-    border: "1px solid #DBDBDB",
+    borderRadius: theme.ROUNDED_LG,
+    border: `1px solid rgba(130, 124, 209, 0.2)`,
+    boxShadow: theme.SHADOW_SM,
   },
   emptyIcon: {
     fontSize: "48px",
     marginBottom: "16px",
   },
   emptyText: {
-    fontSize: "14px",
-    color: "#8E8E8E",
+    fontSize: "15px",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     textAlign: "center",
   },
   // 사이드바 스타일
@@ -483,32 +534,41 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "16px",
-    borderBottom: "1px solid #DBDBDB",
+    borderBottom: `1px solid rgba(130, 124, 209, 0.2)`,
+    backgroundColor: "rgba(130, 124, 209, 0.05)",
   },
   sidebarTitle: {
     fontSize: "16px",
     fontWeight: "600",
     margin: 0,
+    color: theme.MAIN_COLOR,
   },
   closeButton: {
     backgroundColor: "transparent",
+    color: theme.NEUTRAL_TEXT,
     border: "none",
-    fontSize: "16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "32px",
+    height: "32px",
+    borderRadius: theme.ROUNDED_FULL,
     cursor: "pointer",
-    color: "#262626",
+    transition: "all 0.2s ease",
+    padding: 0,
   },
   profileSection: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     padding: "24px 16px",
-    borderBottom: "1px solid #DBDBDB",
+    borderBottom: `1px solid rgba(130, 124, 209, 0.2)`,
   },
   profileAvatar: {
     width: "80px",
     height: "80px",
-    borderRadius: "50%",
-    backgroundColor: "#EFEFEF",
+    borderRadius: theme.ROUNDED_FULL,
+    backgroundColor: theme.MAIN_LIGHT,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -519,14 +579,15 @@ const styles = {
     fontSize: "16px",
     fontWeight: "600",
     marginBottom: "4px",
+    color: theme.NEUTRAL_TEXT,
   },
   profileId: {
     fontSize: "14px",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
   },
   tabContainer: {
     display: "flex",
-    borderBottom: "1px solid #DBDBDB",
+    borderBottom: `1px solid rgba(130, 124, 209, 0.2)`,
   },
   tabButton: {
     flex: 1,
@@ -535,12 +596,13 @@ const styles = {
     padding: "14px 0",
     fontSize: "14px",
     cursor: "pointer",
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
+    transition: "all 0.2s ease",
   },
   activeTab: {
-    color: "#0095F6",
+    color: theme.MAIN_COLOR,
     fontWeight: "600",
-    borderBottom: "2px solid #0095F6",
+    borderBottom: `2px solid ${theme.MAIN_COLOR}`,
   },
   formSection: {
     padding: "16px",
@@ -552,47 +614,34 @@ const styles = {
     fontSize: "14px",
     fontWeight: "600",
     marginBottom: "4px",
+    color: theme.NEUTRAL_TEXT,
   },
   input: {
     padding: "12px",
-    borderRadius: "6px",
-    border: "1px solid #DBDBDB",
+    borderRadius: theme.ROUNDED_MD,
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
     fontSize: "14px",
     backgroundColor: "#FAFAFA",
     outline: "none",
+    transition: "border-color 0.2s ease",
+    ":focus": {
+      borderColor: theme.MAIN_COLOR,
+    }
   },
   saveButton: {
-    backgroundColor: "#0095F6",
+    backgroundColor: theme.MAIN_COLOR,
     color: "white",
     border: "none",
-    borderRadius: "4px",
-    padding: "10px 0",
+    borderRadius: theme.ROUNDED_MD,
+    padding: "12px 0",
     fontWeight: "600",
     fontSize: "14px",
     cursor: "pointer",
     marginTop: "8px",
-  },
-  logoutButton: {
-    backgroundColor: "transparent",
-    color: "#ED4956",
-    border: "none",
-    borderTop: "1px solid #DBDBDB",
-    padding: "16px",
-    marginTop: "auto",
-    fontWeight: "600",
-    fontSize: "14px",
-    cursor: "pointer",
-    textAlign: "center",
-  },
-  logoutButtonHeader: {
-    backgroundColor: "transparent",
-    color: "#ED4956",
-    border: "1px solid #ED4956",
-    borderRadius: "4px",
-    padding: "6px 12px",
-    fontSize: "13px",
-    cursor: "pointer",
-    fontWeight: "600",
+    transition: "background-color 0.2s ease",
+    ":hover": {
+      backgroundColor: theme.MAIN_HOVER,
+    }
   },
   // 반응형 스타일
   '@media (max-width: 768px)': {

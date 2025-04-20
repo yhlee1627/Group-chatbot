@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import theme from "../styles/theme";
 
 function StudentLogin() {
   const [studentId, setStudentId] = useState("");
@@ -58,7 +59,16 @@ function StudentLogin() {
     <div style={styles.container}>
       <div style={styles.loginCard}>
         <div style={styles.header}>
-          <div style={styles.logo}>💬</div>
+          <img 
+            src="/images/berry-icon.png" 
+            alt="BerryChat Logo" 
+            style={styles.logoImage} 
+            onError={(e) => {
+              e.target.style.display = 'none';
+              document.getElementById('fallbackLogo').style.display = 'block';
+            }}
+          />
+          <div id="fallbackLogo" style={{...styles.logo, display: 'none'}}>🫐</div>
           <h1 style={styles.title}>학생 로그인</h1>
         </div>
 
@@ -125,22 +135,29 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     minHeight: "100vh",
-    backgroundColor: "#FAFAFA",
+    backgroundColor: theme.MAIN_LIGHT,
     fontFamily: "'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   },
   loginCard: {
     width: "350px",
     backgroundColor: "#FFFFFF",
-    border: "1px solid #DBDBDB",
-    borderRadius: "1px",
+    border: `1px solid ${theme.MAIN_LIGHT}`,
+    borderRadius: theme.ROUNDED_LG,
     padding: "40px",
     boxSizing: "border-box",
+    boxShadow: theme.SHADOW_MD,
   },
   header: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     marginBottom: "24px",
+  },
+  logoImage: {
+    width: "64px",
+    height: "64px",
+    marginBottom: "12px",
+    objectFit: "contain",
   },
   logo: {
     fontSize: "42px",
@@ -150,7 +167,7 @@ const styles = {
     fontSize: "24px",
     fontWeight: "600",
     margin: "0",
-    color: "#262626",
+    color: theme.MAIN_COLOR,
   },
   form: {
     display: "flex",
@@ -164,24 +181,32 @@ const styles = {
     width: "100%",
     padding: "12px 8px",
     backgroundColor: "#FAFAFA",
-    border: "1px solid #DBDBDB",
-    borderRadius: "3px",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    borderRadius: theme.ROUNDED_SM,
     fontSize: "14px",
     boxSizing: "border-box",
     outline: "none",
-    color: "#262626",
+    color: theme.NEUTRAL_TEXT,
+    transition: "border-color 0.2s ease",
+    ":focus": {
+      borderColor: theme.MAIN_COLOR,
+    }
   },
   loginButton: {
     width: "100%",
-    padding: "8px 0",
-    backgroundColor: "#0095F6",
+    padding: "10px 0",
+    backgroundColor: theme.MAIN_COLOR,
     color: "#FFFFFF",
     border: "none",
-    borderRadius: "4px",
-    fontSize: "14px",
+    borderRadius: theme.ROUNDED_MD,
+    fontSize: "15px",
     fontWeight: "600",
     cursor: "pointer",
     marginTop: "8px",
+    transition: "background-color 0.2s ease",
+    ":hover": {
+      backgroundColor: theme.MAIN_HOVER,
+    }
   },
   divider: {
     display: "flex",
@@ -191,24 +216,28 @@ const styles = {
   dividerLine: {
     flex: 1,
     height: "1px",
-    backgroundColor: "#DBDBDB",
+    backgroundColor: "rgba(130, 124, 209, 0.2)",
   },
   dividerText: {
-    color: "#8E8E8E",
+    color: theme.NEUTRAL_LIGHT_TEXT,
     fontSize: "13px",
-    fontWeight: "600",
+    fontWeight: "500",
     margin: "0 16px",
   },
   backButton: {
     width: "100%",
     padding: "8px 0",
     backgroundColor: "transparent",
-    color: "#0095F6",
+    color: theme.MAIN_COLOR,
     border: "none",
     fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
     textAlign: "center",
+    transition: "color 0.2s ease",
+    ":hover": {
+      color: theme.MAIN_HOVER,
+    }
   },
 };
 
