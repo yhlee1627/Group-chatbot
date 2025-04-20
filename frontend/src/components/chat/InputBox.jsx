@@ -27,11 +27,25 @@ function InputBox({ input, setInput, onSend }) {
     }
   };
 
+  // 모바일 환경에서 폼 스타일 조정
+  const formStyle = {
+    ...styles.form,
+    ...(isMobile && {
+      width: "100%",
+      padding: "8px 12px",
+      boxSizing: "border-box"
+    })
+  };
+
   return (
-    <form onSubmit={handleSubmit} style={styles.form}>
+    <form onSubmit={handleSubmit} style={formStyle}>
       <div style={{
         ...styles.inputWrapper,
-        ...(isFocused ? styles.inputWrapperFocused : {})
+        ...(isFocused ? styles.inputWrapperFocused : {}),
+        ...(isMobile && {
+          height: "40px",
+          flexGrow: 1
+        })
       }}>
         <input
           ref={inputRef}
@@ -41,14 +55,27 @@ function InputBox({ input, setInput, onSend }) {
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder="메시지를 입력하세요..."
-          style={styles.input}
+          style={{
+            ...styles.input,
+            ...(isMobile && {
+              padding: "8px 14px",
+              fontSize: "14px"
+            })
+          }}
         />
       </div>
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         type="submit"
-        style={styles.sendButton}
+        style={{
+          ...styles.sendButton,
+          ...(isMobile && {
+            minWidth: "40px",
+            height: "40px",
+            padding: "8px 12px"
+          })
+        }}
         disabled={!input.trim()}
       >
         {isMobile ? (
@@ -86,6 +113,8 @@ const styles = {
     border: `1px solid ${theme.NEUTRAL_BORDER}`,
     transition: "all 0.2s ease",
     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05) inset",
+    display: "flex", // flexbox 추가
+    alignItems: "center" // 세로 중앙 정렬
   },
   inputWrapperFocused: {
     border: `1px solid ${theme.MAIN_COLOR}`,

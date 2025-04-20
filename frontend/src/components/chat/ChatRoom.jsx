@@ -315,8 +315,16 @@ function ChatRoom() {
     };
   };
 
+  const loadMoreMessages = () => {
+    setLoadingMore(true);
+    socket.emit("get_messages", { room_id: roomId, page: Math.ceil(messages.length / 20) + 1 });
+  };
+
   return (
-    <div style={styles.container}>
+    <div style={{
+      ...styles.container,
+      ...(isMobile && { position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column' })
+    }}>
       {/* 모바일 모드에서 사이드바가 열렸을 때 배경에 오버레이 추가 */}
       {isMobile && showSidebar && (
         <div 
@@ -334,8 +342,10 @@ function ChatRoom() {
           top: 0,
           width: '80%',
           maxWidth: '320px',
+          height: '100%',
           zIndex: 1001,
-          transform: showSidebar ? 'translateX(0)' : 'translateX(-100%)'
+          transform: showSidebar ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s ease'
         } : {})
       }}>
         <div style={styles.sidebarHeader}>
@@ -390,9 +400,24 @@ function ChatRoom() {
       </div>
 
       {/* 메인 콘텐츠 영역 */}
-      <div style={styles.mainContent}>
+      <div style={{
+        ...styles.mainContent,
+        ...(isMobile && { 
+          display: 'flex', 
+          flexDirection: 'column', 
+          height: '100%',
+          width: '100%',
+          position: 'relative'
+        })
+      }}>
         {/* 헤더 - 현재 채팅방 정보 */}
-        <div style={styles.header}>
+        <div style={{
+          ...styles.header,
+          ...(isMobile && { 
+            padding: '8px 12px',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+          })
+        }}>
           <div style={styles.headerLeft}>
             {isMobile && (
               <button 
@@ -435,49 +460,69 @@ function ChatRoom() {
 
         {/* 메시지 영역 */}
         <div 
-          style={styles.messageArea} 
           ref={messageAreaRef}
+          style={{
+            ...styles.messageArea,
+            ...(isMobile && { 
+              flex: 1,
+              paddingBottom: '70px', // 모바일에서 입력창 높이만큼 여유 공간 추가
+              overflowY: 'auto'
+            })
+          }}
         >
-          <div style={styles.messageListContainer}>
-            {loadingMore && (
-              <div style={{...styles.loadingSpinner, margin: '20px auto', width: '30px', height: '30px'}}></div>
-            )}
-            
-            {!isLoading && messages.length > 0 && (
-              <button
-                style={getLoadMoreButtonStyle()}
-                onMouseEnter={() => setIsLoadMoreHovered(true)}
-                onMouseLeave={() => setIsLoadMoreHovered(false)}
-                onClick={() => console.log("더 많은 메시지 로드")}
-              >
-                이전 메시지 더 보기
-              </button>
-            )}
-            
-            {isLoading ? (
-              <div style={styles.loadingContainer}>
-                <div style={styles.loadingSpinner}></div>
-                <p style={styles.loadingText}>채팅 내용을 불러오는 중...</p>
-              </div>
-            ) : (
-              <MessageList messages={messages} studentId={studentId} />
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+          {isLoading ? (
+            <div style={styles.loadingContainer}>
+              <div style={styles.loadingSpinner} />
+              <p style={styles.loadingText}>메시지 불러오는 중...</p>
+            </div>
+          ) : (
+            <div style={styles.messageListContainer}>
+              {messages.length > 20 && (
+                <button 
+                  style={getLoadMoreButtonStyle()}
+                  onClick={loadMoreMessages}
+                  disabled={loadingMore}
+                  onMouseEnter={() => setIsLoadMoreHovered(true)}
+                  onMouseLeave={() => setIsLoadMoreHovered(false)}
+                >
+                  {loadingMore ? "로딩 중..." : "이전 메시지 더 보기"}
+                </button>
+              )}
+              <MessageList 
+                messages={messages} 
+                studentId={studentId} 
+              />
+              <div ref={messagesEndRef} />
+            </div>
+          )}
         </div>
 
-        {/* 입력 영역 */}
-        <div style={styles.inputContainer}>
+        {/* 입력 컨테이너 */}
+        <div style={{
+          ...styles.inputContainer,
+          ...(isMobile && { 
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            width: '100%',
+            padding: '8px 0',
+            backgroundColor: '#fff',
+            borderTop: `1px solid ${theme.NEUTRAL_BORDER}`,
+            boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.08)',
+            zIndex: 10
+          })
+        }}>
           <div style={styles.gptCheckbox}>
             <input
               type="checkbox"
-              id="gpt-question"
+              id="gpt-checkbox"
               checked={isGPT}
               onChange={(e) => setIsGPT(e.target.checked)}
               style={styles.checkbox}
             />
-            <label 
-              htmlFor="gpt-question" 
+            <label
+              htmlFor="gpt-checkbox"
               style={getCheckboxLabelStyle()}
               onMouseEnter={() => setIsCheckboxLabelHovered(true)}
               onMouseLeave={() => setIsCheckboxLabelHovered(false)}
@@ -505,18 +550,12 @@ const styles = {
     overflow: "hidden", // 화면 넘침 방지
   },
   sidebar: {
-    width: "320px",
-    minWidth: "320px",
-    borderRight: `1px solid ${theme.NEUTRAL_BORDER}`,
+    width: "300px",
     backgroundColor: "#FFFFFF",
+    borderRight: `1px solid ${theme.NEUTRAL_BORDER}`,
     display: "flex",
     flexDirection: "column",
-    height: "100vh",
-    overflowY: "auto",
-    position: "relative",
-    zIndex: 1001, // 오버레이보다 높은 z-index
-    boxShadow: theme.SHADOW_SM,
-    transition: "transform 0.3s ease-in-out",
+    transition: "all 0.3s ease",
   },
   sidebarHeader: {
     padding: "20px",
@@ -716,12 +755,19 @@ const styles = {
       maxWidth: '320px',
       zIndex: 1001,
       transform: 'translateX(-100%)',
+      transition: 'transform 0.3s ease',
     },
     sidebarOpen: {
       transform: 'translateX(0)',
     },
     mainContent: {
       width: '100%',
+    },
+    messageArea: {
+      padding: '12px',
+    },
+    inputContainer: {
+      padding: '8px 12px',
     }
   },
   overlay: {

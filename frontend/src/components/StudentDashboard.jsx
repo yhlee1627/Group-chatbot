@@ -11,10 +11,21 @@ function StudentDashboard() {
   const [editPassword2, setEditPassword2] = useState("");
   const [currentName, setCurrentName] = useState("");
   const [activeTab, setActiveTab] = useState("name");
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   const navigate = useNavigate();
   const studentId = localStorage.getItem("studentId");
   const classId = localStorage.getItem("classId");
+
+  // 반응형 UI를 위한 창 크기 감지
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!studentId || !classId) {
@@ -195,13 +206,25 @@ function StudentDashboard() {
   });
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>
+    <div style={{
+      ...styles.container,
+      ...(isMobile && styles.mobileContainer)
+    }}>
+      <div style={{
+        ...styles.header,
+        ...(isMobile && styles.mobileHeader)
+      }}>
+        <h2 style={{
+          ...styles.title,
+          ...(isMobile && styles.mobileTitle)
+        }}>
           <img 
             src="/images/berry-icon.png" 
             alt="BerryChat" 
-            style={styles.headerLogo}
+            style={{
+              ...styles.headerLogo,
+              ...(isMobile && styles.mobileHeaderLogo)
+            }}
             onError={(e) => {
               e.target.style.display = 'none';
               document.getElementById('headerFallbackLogo').style.display = 'inline';
@@ -217,13 +240,19 @@ function StudentDashboard() {
               <path d="M8.14874 4.10377L8.49997 2.5H11.5L11.8512 4.10377C12.0629 4.75228 12.5798 5.24326 13.1771 5.43907C13.7745 5.63489 14.4242 5.51634 14.9167 5.125L16.25 4.16667L18.0833 7.5L16.9083 8.33333C16.3982 8.68041 16.0911 9.27605 16.0911 9.9096C16.0911 10.5431 16.3982 11.1388 16.9083 11.4858L18.0833 12.5L16.25 15.8333L14.9167 14.875C14.4242 14.4837 13.7745 14.3651 13.1771 14.5609C12.5798 14.7567 12.0629 15.2477 11.8512 15.8962L11.5 17.5H8.49997L8.14874 15.8962C7.93711 15.2477 7.42022 14.7567 6.82287 14.5609C6.22552 14.3651 5.57575 14.4837 5.08331 14.875L3.74997 15.8333L1.91664 12.5L3.09164 11.4858C3.60172 11.1388 3.90884 10.5431 3.90884 9.9096C3.90884 9.27605 3.60172 8.68041 3.09164 8.33333L1.91664 7.5L3.74997 4.16667L5.08331 5.125C5.57575 5.51634 6.22552 5.63489 6.82287 5.43907C7.42022 5.24326 7.93711 4.75228 8.14874 4.10377Z" stroke={theme.MAIN_COLOR} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button onClick={handleLogout} style={styles.logoutButtonHeader}>
+          <button onClick={handleLogout} style={{
+            ...styles.logoutButtonHeader,
+            ...(isMobile && { fontSize: '12px', padding: '8px 12px' })
+          }}>
             로그아웃
           </button>
         </div>
       </div>
 
-      <div style={styles.content}>
+      <div style={{
+        ...styles.content,
+        ...(isMobile && styles.mobileContent)
+      }}>
         {Object.keys(grouped).length === 0 ? (
           <div style={styles.emptyState}>
             <div style={styles.emptyIcon}>💬</div>
@@ -231,23 +260,45 @@ function StudentDashboard() {
           </div>
         ) : (
           Object.entries(grouped).map(([topicId, roomList]) => (
-            <div key={topicId} style={styles.topicContainer}>
-              <h3 style={styles.topicTitle}>
+            <div key={topicId} style={{
+              ...styles.topicContainer,
+              ...(isMobile && styles.mobileTopicContainer)
+            }}>
+              <h3 style={{
+                ...styles.topicTitle,
+                ...(isMobile && styles.mobileTopicTitle)
+              }}>
                 {topics[topicId]?.title || "제목 없음"}
               </h3>
-              <div style={styles.roomList}>
+              <div style={{
+                ...styles.roomList,
+                ...(isMobile && styles.mobileRoomList)
+              }}>
                 {roomList.map((room) => (
-                  <div key={room.room_id} style={styles.roomCard}
+                  <div key={room.room_id} 
+                    style={{
+                      ...styles.roomCard,
+                      ...(isMobile && styles.mobileRoomCard)
+                    }}
                     onClick={() => handleEnterRoom(room.room_id)}>
                     <div style={styles.roomInfo}>
-                      <div style={styles.roomAvatar}>👥</div>
+                      <div style={{
+                        ...styles.roomAvatar,
+                        ...(isMobile && styles.mobileRoomAvatar)
+                      }}>👥</div>
                       <div style={styles.roomDetails}>
-                        <span style={styles.roomTitle}>{room.title}</span>
-                        <span style={styles.roomSubtitle}>채팅방 참여하기</span>
+                        <span style={{
+                          ...styles.roomTitle,
+                          ...(isMobile && styles.mobileRoomTitle)
+                        }}>{room.title}</span>
+                        <span style={{
+                          ...styles.roomSubtitle,
+                          ...(isMobile && { fontSize: '12px' })
+                        }}>채팅방 참여하기</span>
                       </div>
                     </div>
                     <button style={styles.joinButton}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <svg width={isMobile ? "20" : "24"} height={isMobile ? "20" : "24"} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8 5L15 12L8 19" stroke={theme.MAIN_COLOR} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
@@ -263,7 +314,10 @@ function StudentDashboard() {
       {showSidebar && (
         <>
           <div style={styles.overlay} onClick={() => setShowSidebar(false)} />
-          <div style={styles.sidebar}>
+          <div style={{
+            ...styles.sidebar,
+            ...(isMobile && styles.mobileSidebar)
+          }}>
             <div style={styles.sidebarHeader}>
               <h3 style={styles.sidebarTitle}>내 프로필</h3>
               <button onClick={() => setShowSidebar(false)} style={styles.closeButton}>
@@ -354,6 +408,12 @@ const styles = {
     color: theme.NEUTRAL_TEXT,
     backgroundColor: theme.MAIN_LIGHT,
     minHeight: "100vh",
+    boxSizing: "border-box",
+  },
+  // 모바일 컨테이너
+  mobileContainer: {
+    padding: "12px",
+    maxWidth: "100%",
   },
   header: {
     display: "flex",
@@ -363,11 +423,10 @@ const styles = {
     borderBottom: `1px solid ${theme.MAIN_COLOR}`,
     marginBottom: "24px",
   },
-  headerLogo: {
-    width: "28px",
-    height: "28px",
-    marginRight: "10px",
-    verticalAlign: "middle",
+  // 모바일 헤더
+  mobileHeader: {
+    padding: "12px 0",
+    marginBottom: "16px",
   },
   title: {
     fontSize: "24px",
@@ -377,157 +436,175 @@ const styles = {
     display: "flex",
     alignItems: "center",
   },
+  // 모바일 타이틀
+  mobileTitle: {
+    fontSize: "20px",
+  },
+  headerLogo: {
+    width: "28px",
+    height: "28px",
+    marginRight: "10px",
+    verticalAlign: "middle",
+  },
+  // 모바일 헤더 로고
+  mobileHeaderLogo: {
+    width: "24px",
+    height: "24px",
+    marginRight: "8px",
+  },
   buttonGroup: {
     display: "flex",
     gap: "16px",
     alignItems: "center",
   },
-  profileButton: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "transparent",
-    color: theme.MAIN_COLOR,
-    border: `1px solid ${theme.MAIN_COLOR}`,
-    borderRadius: theme.ROUNDED_FULL,
-    padding: "10px",
-    width: "40px",
-    height: "40px",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  },
-  logoutButtonHeader: {
-    backgroundColor: "transparent",
-    color: theme.MAIN_COLOR,
-    border: `1px solid ${theme.MAIN_COLOR}`,
-    borderRadius: theme.ROUNDED_MD,
-    padding: "8px 16px",
-    fontSize: "14px",
-    cursor: "pointer",
-    fontWeight: "600",
-    transition: "all 0.2s ease",
-    ":hover": {
-      backgroundColor: theme.MAIN_LIGHT,
-    }
+  // 모바일 버튼 그룹
+  mobileButtonGroup: {
+    gap: "8px",
   },
   content: {
     display: "flex",
     flexDirection: "column",
-    gap: "24px",
+    gap: "32px",
+  },
+  // 모바일 콘텐츠
+  mobileContent: {
+    gap: "20px",
   },
   topicContainer: {
     backgroundColor: "#FFFFFF",
     borderRadius: theme.ROUNDED_LG,
-    border: `1px solid rgba(130, 124, 209, 0.2)`,
+    boxShadow: theme.SHADOW_MD,
     overflow: "hidden",
-    boxShadow: theme.SHADOW_SM,
+  },
+  // 모바일 토픽 컨테이너
+  mobileTopicContainer: {
+    borderRadius: theme.ROUNDED_MD,
   },
   topicTitle: {
-    fontSize: "16px",
-    fontWeight: "600",
-    padding: "16px",
     margin: "0",
-    borderBottom: "1px solid #EFEFEF",
-    color: theme.MAIN_COLOR,
-    backgroundColor: "rgba(130, 124, 209, 0.05)",
+    padding: "16px 20px",
+    fontSize: "18px",
+    fontWeight: "600",
+    borderBottom: `1px solid ${theme.NEUTRAL_BORDER}`,
+    color: theme.NEUTRAL_TEXT,
+  },
+  // 모바일 토픽 제목
+  mobileTopicTitle: {
+    fontSize: "16px",
+    padding: "12px 16px",
   },
   roomList: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  roomCard: {
     padding: "16px",
     display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottom: "1px solid #EFEFEF",
-    cursor: "pointer",
-    transition: "background-color 0.2s",
-    backgroundColor: "#FFFFFF",
-    ":hover": {
-      backgroundColor: "rgba(130, 124, 209, 0.05)",
-    }
-  },
-  roomInfo: {
-    display: "flex",
-    alignItems: "center",
+    flexDirection: "column",
     gap: "12px",
   },
+  // 모바일 룸 리스트 
+  mobileRoomList: {
+    padding: "12px",
+    gap: "8px",
+  },
+  roomCard: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "16px",
+    backgroundColor: "#F9F9FB",
+    borderRadius: theme.ROUNDED_MD,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    "&:hover": {
+      backgroundColor: theme.MAIN_LIGHT,
+    },
+  },
+  // 모바일 룸 카드
+  mobileRoomCard: {
+    padding: "12px",
+  },
   roomAvatar: {
-    width: "48px",
-    height: "48px",
-    borderRadius: theme.ROUNDED_FULL,
+    width: "42px",
+    height: "42px",
+    borderRadius: "50%",
     backgroundColor: theme.MAIN_LIGHT,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: "16px",
     fontSize: "20px",
+    color: theme.MAIN_COLOR,
+    border: `1px solid rgba(130, 124, 209, 0.2)`,
+    flexShrink: 0,
+  },
+  // 모바일 룸 아바타
+  mobileRoomAvatar: {
+    width: "36px",
+    height: "36px",
+    fontSize: "18px",
+    marginRight: "12px",
+  },
+  roomInfo: {
+    display: "flex",
+    alignItems: "center",
   },
   roomDetails: {
     display: "flex",
     flexDirection: "column",
+    gap: "4px",
   },
   roomTitle: {
-    fontSize: "15px",
+    fontSize: "16px",
     fontWeight: "600",
-    marginBottom: "4px",
     color: theme.NEUTRAL_TEXT,
+  },
+  // 모바일 룸 제목
+  mobileRoomTitle: {
+    fontSize: "14px",
   },
   roomSubtitle: {
     fontSize: "13px",
     color: theme.NEUTRAL_LIGHT_TEXT,
   },
   joinButton: {
-    backgroundColor: "transparent",
-    border: "none",
-    cursor: "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "8px",
-  },
-  emptyState: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "64px 24px",
     backgroundColor: "#FFFFFF",
-    borderRadius: theme.ROUNDED_LG,
-    border: `1px solid rgba(130, 124, 209, 0.2)`,
-    boxShadow: theme.SHADOW_SM,
-  },
-  emptyIcon: {
-    fontSize: "48px",
-    marginBottom: "16px",
-  },
-  emptyText: {
-    fontSize: "15px",
-    color: theme.NEUTRAL_LIGHT_TEXT,
-    textAlign: "center",
-  },
-  // 사이드바 스타일
-  overlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    zIndex: 9998,
+    border: `1px solid ${theme.MAIN_COLOR}`,
+    borderRadius: "50%",
+    width: "36px",
+    height: "36px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    flexShrink: 0,
   },
   sidebar: {
     position: "fixed",
-    top: 0,
-    right: 0,
-    width: "350px",
-    height: "100vh",
+    top: "0",
+    right: "0",
+    width: "360px",
+    height: "100%",
     backgroundColor: "#FFFFFF",
-    boxShadow: "-2px 0 10px rgba(0,0,0,0.1)",
-    zIndex: 9999,
+    boxShadow: "-2px 0 10px rgba(0, 0, 0, 0.08)",
+    zIndex: "1001",
     display: "flex",
     flexDirection: "column",
-    overflowY: "auto",
+    transition: "transform 0.3s ease",
+  },
+  // 모바일 사이드바
+  mobileSidebar: {
+    width: "85%",
+    maxWidth: "320px",
+  },
+  overlay: {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: "1000",
+    transition: "opacity 0.3s ease",
+    backdropFilter: "blur(2px)",
   },
   sidebarHeader: {
     display: "flex",
@@ -643,14 +720,25 @@ const styles = {
       backgroundColor: theme.MAIN_HOVER,
     }
   },
-  // 반응형 스타일
-  '@media (max-width: 768px)': {
-    container: {
-      padding: "16px",
-    },
-    sidebar: {
-      width: "100%",
-    },
+  emptyState: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "64px 24px",
+    backgroundColor: "#FFFFFF",
+    borderRadius: theme.ROUNDED_LG,
+    border: `1px solid rgba(130, 124, 209, 0.2)`,
+    boxShadow: theme.SHADOW_SM,
+  },
+  emptyIcon: {
+    fontSize: "48px",
+    marginBottom: "16px",
+  },
+  emptyText: {
+    fontSize: "15px",
+    color: theme.NEUTRAL_LIGHT_TEXT,
+    textAlign: "center",
   },
 };
 

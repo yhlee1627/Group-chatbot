@@ -35,7 +35,7 @@ function LoginSelection() {
             }}
           />
           <div id="fallbackLogo" style={{...styles.logo, display: 'none'}}>🫐</div>
-          <h1 style={styles.title}>BerryChat</h1>
+          <h1 style={styles.title}>Berrytalk</h1>
         </motion.div>
 
         <p style={styles.subtitle}>

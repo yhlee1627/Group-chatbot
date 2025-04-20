@@ -18,6 +18,13 @@ const styles = {
     gap: "8px",
   },
 
+  // 모바일용 메시지 컨테이너
+  mobileMessageContainer: {
+    marginBottom: "14px",
+    maxWidth: "100%",
+    gap: "6px",
+  },
+
   // 💬 말풍선 기본 스타일
   bubbleBase: {
     padding: "12px 16px",
@@ -29,6 +36,14 @@ const styles = {
     boxShadow: theme.SHADOW_SM,
     transition: "box-shadow 0.2s ease",
     position: "relative",
+  },
+
+  // 모바일용 말풍선 기본 스타일
+  mobileBubble: {
+    padding: "8px 12px",
+    borderRadius: "16px",
+    fontSize: "14px",
+    maxWidth: "75%",
   },
 
   // 🧑‍🎓 내가 보낸 메시지 (오른쪽)
@@ -140,7 +155,7 @@ const styles = {
   systemMessage: {
     textAlign: "center",
     color: theme.NEUTRAL_LIGHT_TEXT,
-    margin: "16px 0",
+    margin: "12px 0",
     fontSize: "12px",
     backgroundColor: "rgba(130, 124, 209, 0.05)",
     padding: "8px 16px",
@@ -259,6 +274,7 @@ const styles = {
   avatar: {
     width: "36px",
     height: "36px",
+    minWidth: "36px", // 아바타 크기 유지를 위해 추가
     borderRadius: "50%",
     backgroundColor: theme.MAIN_LIGHT,
     display: "flex",
@@ -273,6 +289,7 @@ const styles = {
   gptAvatar: {
     width: "36px",
     height: "36px",
+    minWidth: "36px", // 아바타 크기 유지를 위해 추가
     borderRadius: "50%",
     backgroundColor: "#F0F7FF",
     display: "flex",
@@ -307,20 +324,59 @@ const styles = {
     border: "1px solid #CCE5FF",
   },
   
-  // 반응형 디자인을 위한 모바일 스타일
-  mobileMessageContainer: {
-    maxWidth: "90%",
-  },
-  
+  // 모바일 아바타 스타일
   mobileAvatar: {
     width: "28px",
     height: "28px",
+    minWidth: "28px", // 아바타 크기 유지를 위해 추가
     fontSize: "14px",
   },
   
-  mobileBubble: {
-    fontSize: "14px",
-    padding: "10px 14px",
+  // 모바일 로딩 버튼
+  loadMoreButton: {
+    backgroundColor: "#FFFFFF",
+    border: `1px solid ${theme.NEUTRAL_BORDER}`,
+    color: theme.NEUTRAL_TEXT,
+    padding: "8px 16px",
+    borderRadius: theme.ROUNDED_MD,
+    fontSize: "13px",
+    fontWeight: "500",
+    cursor: "pointer",
+    margin: "0 auto 16px auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: theme.SHADOW_SM,
+    transition: "all 0.2s ease",
+    width: "auto",
+  },
+  
+  // 로딩 컨테이너 (더 작은 화면에서도 잘 보이도록)
+  loadingContainer: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
+    minHeight: "200px",
+    padding: "20px",
+  },
+  
+  loadingSpinner: {
+    width: "36px",
+    height: "36px",
+    border: `3px solid ${theme.MAIN_LIGHT}`,
+    borderRadius: "50%",
+    borderTop: `3px solid ${theme.MAIN_COLOR}`,
+    animation: "spin 1s linear infinite",
+    marginBottom: "16px",
+  },
+  
+  // 메시지 영역 컨테이너
+  messageListContainer: {
+    display: "flex",
+    flexDirection: "column",
+    minHeight: "100%",
   },
 };
 

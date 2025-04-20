@@ -1,10 +1,21 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import styles from "./chatStyles";
 import { getUserColor } from "./chatUtils";
 import theme from "../../styles/theme";
 
 function MessageList({ messages, studentId, isAdmin = false }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div style={styles.messageList}>
       {messages.map((msg, index) => {
@@ -60,9 +71,12 @@ function MessageList({ messages, studentId, isAdmin = false }) {
           justifyContent: isMyMessage ? "flex-end" : "flex-start",
         };
 
-        const isMobile = window.innerWidth <= 768;
+        // 모바일일 때 컨테이너 스타일 조정
         if (isMobile) {
-          Object.assign(containerStyle, styles.mobileMessageContainer);
+          Object.assign(containerStyle, {
+            ...styles.mobileMessageContainer,
+            marginBottom: "16px" // 모바일에서 메시지 간격 조정
+          });
         }
 
         const bubbleStyle = {
@@ -76,17 +90,41 @@ function MessageList({ messages, studentId, isAdmin = false }) {
             : styles.bubbleOther),
         };
 
+        // 모바일에서 말풍선 너비 조정
         if (isMobile) {
-          Object.assign(bubbleStyle, styles.mobileBubble);
+          Object.assign(bubbleStyle, {
+            ...styles.mobileBubble,
+            maxWidth: isMyMessage ? "80%" : "75%", // 모바일에서 말풍선 너비 제한
+            padding: "8px 12px" // 패딩 조정
+          });
         }
 
         const avatarStyle = {
           ...styles.avatar,
-          ...(isMobile ? styles.mobileAvatar : {}),
           ...(isGPT ? styles.gptAvatar : {})
         };
 
+        // 모바일에서 아바타 크기 조정
+        if (isMobile) {
+          Object.assign(avatarStyle, {
+            width: "28px",
+            height: "28px",
+            fontSize: "14px",
+            minWidth: "28px" // 아바타 크기 고정
+          });
+        }
+
         const avatarEmoji = isGPT ? "🤖" : "👤";
+
+        const timeStyle = {
+          ...styles.timestamp,
+          textAlign: isMyMessage ? "right" : "left",
+          // 모바일에서 타임스탬프 스타일 조정
+          ...(isMobile && {
+            fontSize: "10px",
+            marginTop: "4px"
+          })
+        };
 
         return (
           <motion.div
@@ -105,6 +143,7 @@ function MessageList({ messages, studentId, isAdmin = false }) {
                   ...styles.senderLabel,
                   color: isGPT ? "#0073E6" : theme.NEUTRAL_TEXT,
                   textAlign: isMyMessage ? "right" : "left",
+                  ...(isMobile && { fontSize: "12px", marginBottom: "4px" }) // 모바일에서 이름 크기 조정
                 }}
               >
                 {sender}
@@ -114,6 +153,7 @@ function MessageList({ messages, studentId, isAdmin = false }) {
                 <div style={{
                   ...styles.badgeBase,
                   ...styles.whisperBadge,
+                  ...(isMobile && { fontSize: "10px", padding: "1px 6px", marginBottom: "4px" }) // 모바일에서 배지 크기 조정
                 }}>
                   🤫 {studentId}님에게만
                 </div>
@@ -123,15 +163,24 @@ function MessageList({ messages, studentId, isAdmin = false }) {
                 <div style={{
                   ...styles.badgeBase,
                   ...styles.gptBadge,
+                  ...(isMobile && { fontSize: "10px", padding: "1px 6px", marginBottom: "4px" }) // 모바일에서 배지 크기 조정
                 }}>
                   GPT에게 질문
                 </div>
               )}
 
-              <div style={{ lineHeight: 1.5 }}>{msg.message}</div>
+              <div style={{ 
+                lineHeight: 1.5,
+                ...(isMobile && { fontSize: "14px" }) // 모바일에서 메시지 텍스트 크기 조정
+              }}>
+                {msg.message}
+              </div>
               
               {isAdmin && isGPT && msg.reasoning && (
-                <div style={styles.reasoningContainer}>
+                <div style={{
+                  ...styles.reasoningContainer,
+                  ...(isMobile && { padding: "8px", marginTop: "8px", fontSize: "12px" }) // 모바일에서 reasoning 컨테이너 조정
+                }}>
                   <div style={styles.reasoningTitle}>
                     <span>🧠</span> GPT 판단 이유:
                   </div>
@@ -140,12 +189,7 @@ function MessageList({ messages, studentId, isAdmin = false }) {
               )}
 
               {time && (
-                <div
-                  style={{
-                    ...styles.timestamp,
-                    textAlign: isMyMessage ? "right" : "left",
-                  }}
-                >
+                <div style={timeStyle}>
                   {time}
                 </div>
               )}
