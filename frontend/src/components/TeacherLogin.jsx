@@ -30,6 +30,55 @@ function TeacherLogin() {
     }
 
     try {
+      // 관리자 계정 확인 (아이디가 "admin"인 경우)
+      if (teacherId === "admin") {
+        const adminRes = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/admins?admin_id=eq.${teacherId}`,
+          {
+            headers: {
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+          }
+        );
+
+        const adminData = await adminRes.json();
+        
+        // 관리자 패스워드 확인
+        if (adminData.length > 0 && adminData[0].password === password) {
+          // 선택한 반 정보 가져오기
+          const classRes = await fetch(
+            `${import.meta.env.VITE_BACKEND_URL}/classes?class_id=eq.${selectedClassId}`,
+            {
+              headers: {
+                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+            }
+          );
+          
+          const classData = await classRes.json();
+          
+          if (classData.length > 0) {
+            // 관리자로 로그인 했음을 표시
+            localStorage.setItem("isAdmin", "true");
+            localStorage.setItem("adminId", teacherId);
+            
+            // 선택한 반의 교사 정보로 로그인
+            localStorage.setItem("teacherId", "admin_access");
+            localStorage.setItem("classId", selectedClassId);
+            localStorage.setItem("teacherName", `관리자(${classData[0].name})`);
+            
+            navigate("/teacher");
+            return;
+          }
+        } else {
+          alert("❌ 관리자 비밀번호가 일치하지 않습니다.");
+          return;
+        }
+      }
+
+      // 기존 교사 로그인 로직
       const res = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/teachers?teacher_id=eq.${teacherId}`,
         {
@@ -52,7 +101,8 @@ function TeacherLogin() {
         alert("❌ 비밀번호가 틀렸거나 반이 일치하지 않습니다.");
       }
     } catch (err) {
-      alert("❌ 존재하지 않는 교사 ID입니다.");
+      alert("❌ 로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.");
+      console.error(err);
     }
   };
 

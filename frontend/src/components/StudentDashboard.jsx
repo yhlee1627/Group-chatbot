@@ -331,7 +331,16 @@ function StudentDashboard() {
           }}>
             <div style={styles.sidebarHeader}>
               <h3 style={styles.sidebarTitle}>내 프로필</h3>
-              <button onClick={() => setShowSidebar(false)} style={styles.closeButton}>
+              <button 
+                onClick={() => setShowSidebar(false)} 
+                style={styles.closeButton}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.NEUTRAL_LIGHTEST;
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 4L4 12" stroke={theme.NEUTRAL_TEXT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M4 4L12 12" stroke={theme.NEUTRAL_TEXT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

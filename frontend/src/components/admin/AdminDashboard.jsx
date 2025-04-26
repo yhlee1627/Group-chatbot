@@ -441,7 +441,7 @@ const styles = {
     cursor: "pointer",
     transition: "all 0.2s ease",
     padding: 0,
-    ':hover': {
+    '&:hover': {
       backgroundColor: 'rgba(0, 0, 0, 0.05)',
     }
   },

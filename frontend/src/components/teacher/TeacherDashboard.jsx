@@ -16,6 +16,7 @@ function TeacherDashboard() {
   const [editPassword2, setEditPassword2] = useState("");
   const [profileActiveTab, setProfileActiveTab] = useState("name");
   const [currentName, setCurrentName] = useState("");
+  const [isAdminAccess, setIsAdminAccess] = useState(localStorage.getItem("isAdmin") === "true");
   
   const navigate = useNavigate();
   const classId = localStorage.getItem("classId");
@@ -30,21 +31,31 @@ function TeacherDashboard() {
 
   // 교사 정보 및 클래스 정보 가져오기
   useEffect(() => {
-    const fetchTeacherInfo = async () => {
+    async function fetchData() {
+      setLoading(true);
       try {
-        // 교사 정보 가져오기
-        const teacherResponse = await fetch(
-          `${backend}/teachers?teacher_id=eq.${teacherId}`,
-          { headers }
-        );
-        const teacherData = await teacherResponse.json();
-        if (teacherData.length > 0) {
-          const name = teacherData[0].name || teacherId;
-          setTeacherName(name);
-          setCurrentName(name);
+        // 로컬 스토리지에서 교사 ID와 반 ID 가져오기
+        const teacherId = localStorage.getItem("teacherId");
+        const classId = localStorage.getItem("classId");
+        const teacherName = localStorage.getItem("teacherName");
+
+        if (!teacherId || !classId) {
+          navigate("/teacher-login");
+          return;
         }
 
-        // 클래스 정보 가져오기
+        setTeacherId(teacherId);
+        setClassId(classId);
+        setTeacherName(teacherName);
+
+        // Backend URL과 headers 설정
+        const backend = import.meta.env.VITE_BACKEND_URL;
+        const headers = {
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        };
+
+        // 반 정보 가져오기
         const classResponse = await fetch(
           `${backend}/classes?class_id=eq.${classId}`,
           { headers }
@@ -53,13 +64,22 @@ function TeacherDashboard() {
         if (classData.length > 0) {
           setClassName(classData[0].name || "");
         }
+
+        // 나머지 데이터 가져오기...
+
+        // 학생 목록 가져오기
+        const studentsResponse = await fetch(
+          `${backend}/students?class_id=eq.${classId}`,
+          { headers }
+        );
+        // 이하 동일...
       } catch (error) {
         console.error("정보를 가져오는 중 오류 발생:", error);
       }
-    };
+    }
 
     if (teacherId && classId) {
-      fetchTeacherInfo();
+      fetchData();
     } else {
       navigate("/teacher-login");
     }
@@ -163,9 +183,11 @@ function TeacherDashboard() {
             style={styles.iconButton}
             title="설정"
             onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(130, 124, 209, 0.1)';
               e.currentTarget.style.color = theme.MAIN_COLOR;
             }}
             onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
               e.currentTarget.style.color = theme.NEUTRAL_TEXT;
             }}
           >
@@ -178,9 +200,13 @@ function TeacherDashboard() {
             onClick={handleLogout} 
             style={styles.logoutButton}
             onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(130, 124, 209, 0.1)';
+              e.currentTarget.style.borderColor = theme.MAIN_COLOR;
               e.currentTarget.style.color = theme.MAIN_COLOR;
             }}
             onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.borderColor = theme.NEUTRAL_BORDER;
               e.currentTarget.style.color = theme.NEUTRAL_TEXT;
             }}
           >
@@ -189,6 +215,39 @@ function TeacherDashboard() {
         </div>
       </div>
 
+      {/* 관리자 접속 모드 알림 배너 */}
+      {isAdminAccess && (
+        <div style={{
+          backgroundColor: "rgba(255, 100, 100, 0.1)",
+          padding: "8px 16px",
+          borderRadius: "4px",
+          margin: "0 20px 16px 20px",
+          color: "#ff4757",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }}>
+          <span>🔒 관리자 접속 모드 - 현재 {className} 반의 교사 권한으로 접속 중입니다</span>
+          <button
+            onClick={() => {
+              localStorage.removeItem("isAdmin");
+              localStorage.removeItem("adminId");
+              navigate("/admin-login");
+            }}
+            style={{
+              backgroundColor: "transparent",
+              border: "1px solid #ff4757",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              color: "#ff4757",
+              cursor: "pointer"
+            }}
+          >
+            관리자 페이지로 돌아가기
+          </button>
+        </div>
+      )}
+
       {/* 프로필 사이드바 */}
       {showSidebar && (
         <>
@@ -196,7 +255,16 @@ function TeacherDashboard() {
           <div style={styles.sidebar}>
             <div style={styles.sidebarHeader}>
               <h3 style={styles.sidebarTitle}>내 프로필</h3>
-              <button onClick={() => setShowSidebar(false)} style={styles.closeButton}>
+              <button 
+                onClick={() => setShowSidebar(false)} 
+                style={styles.closeButton}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.NEUTRAL_LIGHTEST;
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 4L4 12" stroke={theme.NEUTRAL_TEXT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M4 4L12 12" stroke={theme.NEUTRAL_TEXT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -431,9 +499,6 @@ const styles = {
     cursor: "pointer",
     transition: "all 0.2s ease",
     padding: 0,
-    ':hover': {
-      backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    }
   },
   sidebarTabContainer: {
     display: "flex",
