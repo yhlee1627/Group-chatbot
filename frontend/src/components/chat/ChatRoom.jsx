@@ -590,7 +590,7 @@ function ChatRoom() {
               onMouseEnter={() => setIsCheckboxLabelHovered(true)}
               onMouseLeave={() => setIsCheckboxLabelHovered(false)}
             >
-              GPT에게 질문하기
+              AI에게 질문하기
             </label>
           </div>
           <div style={{
