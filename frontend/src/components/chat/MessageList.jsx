@@ -128,7 +128,7 @@ function MessageList({ messages, studentId, isAdmin = false }) {
           });
         }
 
-        const avatarEmoji = isGPT ? "🤖" : "👤";
+        const avatarEmoji = isGPT ? "✨" : "👤";
 
         const timeStyle = {
           ...styles.timestamp,
