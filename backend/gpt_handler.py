@@ -67,7 +67,7 @@ GPT는 교사의 보조교사로서, 다음 기준에 따라 개입 상황을 �
 
         try:
             response = await client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini",
                 messages=messages,
                 temperature=0
             )
